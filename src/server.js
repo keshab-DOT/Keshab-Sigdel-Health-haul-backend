@@ -3,6 +3,11 @@ import dotenv from "dotenv";
 import http from "http";
 import {connectDB} from './config/mongodb.js';
 import userRoutes from "./routes/userRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -11,6 +16,11 @@ app.use(express.json());
 
 // --- Routes ---
 app.use("/api/auth", userRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+
+
 
 app.get("/", (_req, res) => {
   res.json({ name: process.env.NAME, version: process.env.VERSION, message: "Server is running" });
