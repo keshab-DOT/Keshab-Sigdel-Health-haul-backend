@@ -1,12 +1,24 @@
 import express from "express";
-import { createProduct, getProducts, getProductById, updateProduct, deleteProduct } from "../controllers/productController.js";
+import {
+  createProduct,
+  getProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
+} from "../controllers/productController.js";
+import auth from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", createProduct);
-router.get("/", getProducts);
-router.get("/:id", getProductById);
-router.put("/:id", updateProduct);
-router.delete("/:id", deleteProduct);
+// anyone can see products
+router.get("/get/products", getProducts);
+router.get("/get/product/by/:id", getProductById);
+
+// only admin or logged-in users can create product
+router.post("/create/product", auth(), createProduct);
+
+// update/delete: only admin or owner
+router.put("/product/update/:id", auth(), updateProduct);
+router.delete("/product/delete/:id", auth(), deleteProduct);
 
 export default router;

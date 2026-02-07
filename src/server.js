@@ -6,13 +6,15 @@ import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
-
+import cookieParser from "cookie-parser";
 
 
 dotenv.config();
+
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 // --- Routes ---
 app.use("/api/auth", userRoutes);
@@ -31,7 +33,7 @@ const startServer = async () => {
   try {
     await connectDB();
     http.createServer(app).listen(PORT, () =>
-      console.log(`${process.env.NAME} running on http://localhost:${PORT}`)
+      console.log(`Serve running on http://localhost:${PORT}`)
     );
   } catch (err) {
     console.error("Database connection failed:", err.message);

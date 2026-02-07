@@ -3,12 +3,12 @@ import { createOrder, getOrders, getOrderById, getOrdersByUser, updateOrderStatu
 
 const router = express.Router();
 
-router.post("/", createOrder);
-router.post("/checkout", checkoutCart);
-router.get("/", getOrders);
-router.get("/:id", getOrderById);
-router.get("/user/:userId", getOrdersByUser);
-router.put("/:id", updateOrderStatus);
-router.delete("/:id", deleteOrder);
+router.post("/create/order", createOrder);
+router.post("/checkout/cart", checkoutCart);
+router.get("/get/order", getOrders);
+router.get("/get/order/by/:id", getOrderById);
+router.get("/get/order/byuser/:id", getOrdersByUser);
+router.put("/update/order/status/:id", updateOrderStatus);
+router.delete("/delete/order/:id", deleteOrder);
 
 export default router;
