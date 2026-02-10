@@ -1,6 +1,6 @@
 import Order from "../models/order.js";
 import Cart from "../models/cart.js";
-import Product from "../models/product.js"; // ensure correct casing
+import Product from "../models/product.js"; 
 
 // CREATE ORDER manually (without userId)
 export const createOrder = async (req, res) => {
@@ -8,7 +8,7 @@ export const createOrder = async (req, res) => {
     const { products, shippingAddress, phoneNumber, paymentMethod } = req.body;
 
     if (!products || !products.length) {
-      return res.status(400).json({ message: "Products are required" });
+      return res.status(400).json({ message: "Products are required" }); // at least one product
     }
 
     let totalAmount = 0;
@@ -45,7 +45,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// CHECKOUT CART → CREATE ORDER (without userId)
+// CHECKOUT CART by creating order (without userId)
 export const checkoutCart = async (req, res) => {
   try {
     const { shippingAddress, phoneNumber, paymentMethod } = req.body;

@@ -1,6 +1,6 @@
 import Product from "../models/product.js";
 
-/* CREATE PRODUCT */
+//CREATE PRODUCT garako 
 export const createProduct = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -13,25 +13,26 @@ export const createProduct = async (req, res) => {
       productTotalStockQuantity
     } = req.body;
 
-    // validation
+    // validation garako field haru ko lagi
     if (
       !productName ||
       !productDescription ||
       !productPrice ||
-      productTotalStockQuantity === undefined
+      productTotalStockQuantity === undefined // yo miluna baki xa 
     ) {
       return res.status(400).json({
         message: "Product name, description, price, and total stock quantity are required"
       });
     }
 
+    // naya product create garnako database ma 
     const product = await Product.create({
       productName,
       productDescription,
       productPrice,
       productImageUrl,
       productTotalStockQuantity,
-      userId
+      userId  // product owner ko id
     });
 
     res.status(201).json({
@@ -44,12 +45,12 @@ export const createProduct = async (req, res) => {
   }
 };
 
-/* GET ALL PRODUCTS */
+// GET ALL PRODUCTS
 export const getProducts = async (_req, res) => {
   try {
-    const products = await Product.find()
+    const products = await Product.find()  // fetch all products from the database
       .populate("userId", "name email role")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 }); // new data chai suru ma dekhaune
 
     res.json(products);
   } catch (error) {
@@ -57,11 +58,11 @@ export const getProducts = async (_req, res) => {
   }
 };
 
-/* GET PRODUCT BY ID */
+// GET PRODUCT BY ID 
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate("userId", "name email role");
+      .populate("userId", "name email role"); // ya chai user ko details pani fetch garne
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -73,7 +74,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
-/* UPDATE PRODUCT */
+// UPDATE PRODUCT 
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -107,7 +108,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-/* DELETE PRODUCT */
+// DELETE PRODUCT
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);

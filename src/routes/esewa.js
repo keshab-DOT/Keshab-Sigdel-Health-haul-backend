@@ -28,7 +28,7 @@ router.post("/verify/esewa", async (req, res) => {
 
     // eSewa returns XML, check for SUCCESS
     if (response.data.includes("Success")) {
-      // Payment verified, mark order as confirmed
+      // Payment verified
       const order = await Order.findOneAndUpdate(
         { _id: pid },
         { orderStatus: "ontheway", paymentMethod: "esewa" },
