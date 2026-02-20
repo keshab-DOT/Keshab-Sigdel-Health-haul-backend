@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { signup, verifyEmail, resendOtp, userLogin, logout } from "../controllers/userController.js";
 
+
 const router = Router();
 
 router.post("/register", signup);

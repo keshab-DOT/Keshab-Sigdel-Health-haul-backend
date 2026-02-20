@@ -7,11 +7,14 @@ import {
   updateOrderStatus,
   deleteOrder
 } from "../controllers/orderController.js";
+import auth from "../middleware/authMiddleware.js";
+import { ADMIN } from "../constants/roles.js";
+import roleBasedAuth from "../middleware/rolebased.js";
 
 const router = express.Router();
 
 // Create order manually (without userId)
-router.post("/create/order", createOrder);
+router.post("/create/order", auth(), roleBasedAuth(ADMIN), createOrder);
 
 // Checkout cart → create order
 router.post("/checkout/cart", checkoutCart);
@@ -23,9 +26,9 @@ router.get("/get/orders", getOrders);
 router.get("/get/order/:id", getOrderById);
 
 // Update order status
-router.put("/update/order/:id", updateOrderStatus);
+router.put("/update/order/:id", auth(), roleBasedAuth(ADMIN), updateOrderStatus);
 
 // Delete order
-router.delete("/delete/order/:id", deleteOrder);
+router.delete("/delete/order/:id", auth(), roleBasedAuth(ADMIN), deleteOrder);
 
 export default router;
