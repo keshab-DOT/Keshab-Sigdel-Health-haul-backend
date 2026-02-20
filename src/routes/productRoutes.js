@@ -20,7 +20,7 @@ router.get("/get/product/by/:id", getProductById);
 router.post("/create/product", auth(), roleBasedAuth(ADMIN.SELLER), createProduct);
 
 // update/delete: only admin or owner
-router.put("/product/update/:id", auth(), roleBasedAuth(ADMIN), updateProduct);
+router.put("/product/update/:id", auth(), roleBasedAuth(ADMIN.SELLER), updateProduct);
 router.delete("/product/delete/:id", auth(), roleBasedAuth(ADMIN), deleteProduct);
 
 export default router;
