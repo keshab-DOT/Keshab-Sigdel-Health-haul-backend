@@ -2,7 +2,7 @@ import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import { generateVerificationCode } from "../utils/tokens.js"; // OTP can be here or Email.js
 import { sendVerificationCode } from "./emailService.js";
-import { USER, SELLER } from "../constants/roles.js";
+import { USER, PHARMACY } from "../constants/roles.js";
 
 const OTP_EXPIRY_MINUTES = 5;
 
@@ -13,8 +13,8 @@ const signup = async (data) => {
   const hashedPassword = bcrypt.hashSync(data.password, 10);
   let selectedRole = USER;
 
-  if (data.role === SELLER) {
-    selectedRole = SELLER;
+  if (data.role === PHARMACY) {
+    selectedRole = PHARMACY;
   }
   const verificationCode = generateVerificationCode();
   const verificationCodeExpiryTime = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;

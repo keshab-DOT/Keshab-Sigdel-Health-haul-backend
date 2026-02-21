@@ -1,3 +1,3 @@
 export const USER = "USER";
 export const ADMIN = "ADMIN";
-export const SELLER = "SELLER";
+export const PHARMACY = "PHARMACY";
