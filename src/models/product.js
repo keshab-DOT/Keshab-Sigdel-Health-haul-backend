@@ -6,6 +6,11 @@ const productSchema = new mongoose.Schema({
   productPrice: { type: Number, required: true },
   productImageUrl: { type: String },
   productTotalStockQuantity: { type: Number, required: true },
+  approvalStatus: {
+    type: String,
+    enum: ["Pending", "Approved", "Rejected"],
+    default: "Pending",
+  },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
 

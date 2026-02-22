@@ -1,4 +1,4 @@
-import mongoose from "mongoose"; 
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -8,6 +8,14 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpiryTime: { type: Date },
+
+    approvalStatus: {
+        type: String,
+        enum: ["Pending", "Approved", "Rejected"],
+        default: "Pending",
+    },
+
+
 });
 
 const User = mongoose.model("User", userSchema);
