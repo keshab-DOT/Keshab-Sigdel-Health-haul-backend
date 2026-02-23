@@ -9,7 +9,9 @@ import {
 import auth from "../middleware/authMiddleware.js";
 import { ADMIN, PHARMACY } from "../constants/roles.js";
 import roleBasedAuth from "../middleware/rolebased.js";
+import {multer, storage} from "../middleware/multerMiddleware.js";
 
+const upload=multer({storage : storage});
 const router = express.Router();
 
 // anyone can see products

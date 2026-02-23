@@ -20,7 +20,7 @@ router.post("/create/order", auth(), roleBasedAuth([ADMIN]), createOrder);
 router.post("/checkout/cart",  auth(), roleBasedAuth([USER]), checkoutCart);
 
 // Get all orders
-router.get("/get/orders", auth(), roleBasedAuth([ADMIN]), getOrders);
+router.get("/get/orders", auth(), roleBasedAuth([ADMIN, PHARMACY]), getOrders);
 
 // Get order by ID
 router.get("/get/order/:id", auth(), roleBasedAuth([ADMIN, USER]), getOrderById);

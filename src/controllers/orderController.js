@@ -1,14 +1,15 @@
 import Order from "../models/order.js";
 import Cart from "../models/cart.js";
-import Product from "../models/product.js"; 
+import Product from "../models/product.js";
 
-// CREATE ORDER manually (without userId)
+// CREATE ORDER
 export const createOrder = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { products, shippingAddress, phoneNumber, paymentMethod } = req.body;
 
     if (!products || !products.length) {
-      return res.status(400).json({ message: "Products are required" }); // at least one product
+      return res.status(400).json({ message: "Products are required" });
     }
 
     let totalAmount = 0;
@@ -16,21 +17,32 @@ export const createOrder = async (req, res) => {
 
     for (const item of products) {
       const product = await Product.findById(item.productId);
+
       if (!product) {
-        return res.status(404).json({ message: `Product not found: ${item.productId}` });
+        return res.status(404).json({ message: "Product not found" });
       }
 
       if (item.quantity > product.productTotalStockQuantity) {
         return res.status(400).json({
-          message: `Cannot order ${item.quantity} of ${product.productName}. Only ${product.productTotalStockQuantity} in stock`
+          message: `Only ${product.productTotalStockQuantity} left in stock`
         });
       }
 
-      validatedProducts.push({ productId: product._id, quantity: item.quantity });
+      // Reduce stock
+      await Product.findByIdAndUpdate(product._id, {
+        $inc: { productTotalStockQuantity: -item.quantity }
+      });
+
+      validatedProducts.push({
+        productId: product._id,
+        quantity: item.quantity
+      });
+
       totalAmount += product.productPrice * item.quantity;
     }
 
     const order = await Order.create({
+      userId,
       products: validatedProducts,
       shippingAddress,
       phoneNumber,
@@ -45,14 +57,17 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// CHECKOUT CART by creating order (without userId)
+// CHECKOUT CART
 export const checkoutCart = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { shippingAddress, phoneNumber, paymentMethod } = req.body;
 
-    const cartItems = await Cart.find().populate("productId", "productName productPrice productTotalStockQuantity");
+    const cartItems = await Cart.find({ userId }).populate("productId");
 
-    if (!cartItems.length) return res.status(400).json({ message: "Cart is empty" });
+    if (!cartItems.length) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
 
     let totalAmount = 0;
     const products = [];
@@ -62,17 +77,32 @@ export const checkoutCart = async (req, res) => {
 
       if (item.quantity > product.productTotalStockQuantity) {
         return res.status(400).json({
-          message: `Cannot order ${item.quantity} of ${product.productName}. Only ${product.productTotalStockQuantity} in stock`
+          message: `Only ${product.productTotalStockQuantity} left in stock`
         });
       }
 
-      products.push({ productId: product._id, quantity: item.quantity });
+      await Product.findByIdAndUpdate(product._id, {
+        $inc: { productTotalStockQuantity: -item.quantity }
+      });
+
+      products.push({
+        productId: product._id,
+        quantity: item.quantity
+      });
+
       totalAmount += product.productPrice * item.quantity;
     }
 
-    const order = await Order.create({ products, shippingAddress, phoneNumber, totalAmount, paymentMethod });
+    const order = await Order.create({
+      userId,
+      products,
+      shippingAddress,
+      phoneNumber,
+      totalAmount,
+      paymentMethod
+    });
 
-    await Cart.deleteMany(); // clear cart after checkout
+    await Cart.deleteMany({ userId });
 
     res.status(201).json({ message: "Order placed successfully", order });
 
@@ -89,7 +119,6 @@ export const getOrders = async (_req, res) => {
       .sort({ createdAt: -1 });
 
     res.json(orders);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -101,7 +130,9 @@ export const getOrderById = async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate("products.productId", "productName productPrice productImageUrl");
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
     res.json(order);
 
@@ -121,7 +152,9 @@ export const updateOrderStatus = async (req, res) => {
       { new: true }
     );
 
-    if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
     res.json({ message: "Order status updated", order: updatedOrder });
 
@@ -135,7 +168,9 @@ export const deleteOrder = async (req, res) => {
   try {
     const deletedOrder = await Order.findByIdAndDelete(req.params.id);
 
-    if (!deletedOrder) return res.status(404).json({ message: "Order not found" });
+    if (!deletedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
     res.json({ message: "Order deleted successfully" });
 
