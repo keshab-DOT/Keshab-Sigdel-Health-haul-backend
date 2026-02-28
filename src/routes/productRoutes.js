@@ -5,6 +5,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  getMyProducts,
 } from "../controllers/productController.js";
 import auth from "../middleware/authMiddleware.js";
 import { ADMIN, PHARMACY } from "../constants/roles.js";
@@ -17,6 +18,9 @@ const router = express.Router();
 // anyone can see products
 router.get("/get/products", getApprovedProducts);
 router.get("/get/product/by/:id", getProductById);
+
+// Pharmacy — see their own products (all statuses: Pending, Approved, Rejected)
+router.get("/my/products", auth(), roleBasedAuth([PHARMACY]), getMyProducts);
 
 // only pharmacy can create product
 router.post("/create/product", auth(), roleBasedAuth([PHARMACY]), upload.single("image"), createProduct);

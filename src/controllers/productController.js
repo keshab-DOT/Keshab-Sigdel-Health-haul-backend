@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Product from "../models/product.js";
 
-  // CREATE PRODUCT (Pharmacy)
+// CREATE PRODUCT (Pharmacy)
 export const createProduct = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -48,7 +48,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
-  // GET APPROVED PRODUCTS (Public)
+// GET APPROVED PRODUCTS (Public)
 export const getApprovedProducts = async (_req, res) => {
   try {
     const products = await Product.find({
@@ -63,7 +63,20 @@ export const getApprovedProducts = async (_req, res) => {
   }
 };
 
-  // GET SINGLE PRODUCT (Public - Approved only)
+// GET MY PRODUCTS (Pharmacy - all statuses: Pending, Approved, Rejected)
+export const getMyProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ userId: req.user._id })
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET SINGLE PRODUCT (Public - Approved only)
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findOne({
@@ -81,8 +94,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
-
-  // UPDATE PRODUCT (Owner or Admin)
+// UPDATE PRODUCT (Owner or Admin)
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -125,7 +137,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-  // DELETE PRODUCT (Owner or Admin)
+// DELETE PRODUCT (Owner or Admin)
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -153,7 +165,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-  // ADMIN: GET ALL PRODUCTS
+// ADMIN: GET ALL PRODUCTS
 export const getAllProductsAdmin = async (_req, res) => {
   try {
     const products = await Product.find()
@@ -166,7 +178,7 @@ export const getAllProductsAdmin = async (_req, res) => {
   }
 };
 
-  // ADMIN: APPROVE / REJECT PRODUCT
+// ADMIN: APPROVE / REJECT PRODUCT
 export const updateProductApproval = async (req, res) => {
   try {
     const { id } = req.params;
