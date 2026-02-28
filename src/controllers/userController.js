@@ -61,6 +61,30 @@ const userLogin = async (req, res) => {
   }
 };
 
+const resetPassword = async (email, code, newPassword) => {
+  const user = await User.findOne({ email });
+  if (!user) throw { statusCode: 404, message: "User not found" };
+
+  if (!user.resetPasswordCode)
+    throw { statusCode: 400, message: "Reset code missing" };
+
+  if (user.resetPasswordExpiryTime < Date.now())
+    throw { statusCode: 400, message: "Reset code expired" };
+
+  if (user.resetPasswordCode.toString().trim() !== code.toString().trim())
+    throw { statusCode: 400, message: "Invalid reset code" };
+
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+  user.password = hashedPassword;
+  user.resetPasswordCode = null;
+  user.resetPasswordExpiryTime = null;
+
+  await user.save();
+
+  return { message: "Password reset successfully" };
+};
+
 const logout = async (req, res) => {
   try {
     res.clearCookie("authToken", { httpOnly: true, sameSite: "strict" });

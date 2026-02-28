@@ -5,7 +5,12 @@ const productSchema = new mongoose.Schema({
   productDescription: { type: String, required: true },
   productPrice: { type: Number, required: true },
   productImageUrl: { type: String },
-  productTotalStockQuantity: { type: Number, required: true },
+  productTotalStockQuantity: { type: Number, required: true, min: 0 },
+  stockStatus: {
+    type: String,
+    enum: ["In Stock", "Out of Stock"],
+    default: "In Stock",
+  },
   approvalStatus: {
     type: String,
     enum: ["Pending", "Approved", "Rejected"],

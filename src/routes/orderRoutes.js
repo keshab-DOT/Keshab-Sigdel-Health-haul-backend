@@ -14,21 +14,21 @@ import roleBasedAuth from "../middleware/rolebased.js";
 const router = express.Router();
 
 // Create order manually (without userId)
-router.post("/create/order", auth(), roleBasedAuth([ADMIN]), createOrder);
+router.post("/create/order", auth(), roleBasedAuth([PHARMACY]), createOrder);
 
 // Checkout cart → create order
 router.post("/checkout/cart",  auth(), roleBasedAuth([USER]), checkoutCart);
 
 // Get all orders
-router.get("/get/orders", auth(), roleBasedAuth([ADMIN, PHARMACY]), getOrders);
+router.get("/get/orders", auth(), roleBasedAuth([PHARMACY, USER, ADMIN]), getOrders);
 
 // Get order by ID
-router.get("/get/order/:id", auth(), roleBasedAuth([ADMIN, USER]), getOrderById);
+router.get("/get/order/:id", auth(), roleBasedAuth([PHARMACY, USER, ADMIN]), getOrderById);
 
 // Update order status
-router.put("/update/order/:id", auth(), roleBasedAuth([ADMIN, PHARMACY]), updateOrderStatus);
+router.put("/update/order/:id", auth(), roleBasedAuth([PHARMACY, ADMIN]), updateOrderStatus);
 
 // Delete order
-router.delete("/delete/order/:id", auth(), roleBasedAuth([ADMIN]), deleteOrder);
+router.delete("/delete/order/:id", auth(), roleBasedAuth([ADMIN, PHARMACY]), deleteOrder);
 
 export default router;

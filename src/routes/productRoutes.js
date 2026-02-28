@@ -1,7 +1,7 @@
 import express from "express";
 import {
   createProduct,
-  getProducts,
+  getApprovedProducts,
   getProductById,
   updateProduct,
   deleteProduct,
@@ -15,14 +15,14 @@ const upload=multer({storage : storage});
 const router = express.Router();
 
 // anyone can see products
-router.get("/get/products", getProducts);
+router.get("/get/products", getApprovedProducts);
 router.get("/get/product/by/:id", getProductById);
 
-// only admin or logged-in users can create product
-router.post("/create/product", auth(), roleBasedAuth([ADMIN, PHARMACY]), createProduct);
+// only pharmacy can create product
+router.post("/create/product", auth(), roleBasedAuth([PHARMACY]), upload.single("image"), createProduct);
 
-// update/delete: only admin or owner
-router.put("/product/update/:id", auth(), roleBasedAuth([ADMIN, PHARMACY]), updateProduct);
-router.delete("/product/delete/:id", auth(), roleBasedAuth([ADMIN]), deleteProduct);
+// update/delete:owner
+router.put("/product/update/:id", auth(), roleBasedAuth([PHARMACY]), updateProduct);
+router.delete("/product/delete/:id", auth(), roleBasedAuth([ADMIN, PHARMACY]), deleteProduct);
 
 export default router;
