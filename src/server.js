@@ -10,6 +10,7 @@ import orderRoutes from "./routes/orderRoutes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import adminRoutes from "./routes/adminRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/categories", categoryRoutes);
 
 
 
