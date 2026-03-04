@@ -8,15 +8,19 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpiryTime: { type: Date },
-
-    approvalStatus: {
+    status: {
         type: String,
-        enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending",
+        enum: ["Active", "Suspended", "Banned"],
+        default: "Active",
     },
+        approvalStatus: {
+            type: String,
+            enum: ["Pending", "Approved", "Rejected"],
+            default: "Pending",
+        },
 
 
-});
+    });
 
 const User = mongoose.model("User", userSchema);
 export default User;

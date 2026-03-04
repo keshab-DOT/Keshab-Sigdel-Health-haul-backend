@@ -4,41 +4,56 @@
 
 // const router = express.Router();
 
-// // Verify eSewa payment
 // router.post("/verify/esewa", async (req, res) => {
 //   try {
-//     const { tAmt, amt, txAmt, psc, pdc, scd, pid, refId } = req.body;
+//     const { tAmt, amt, txAmt, psc, pdc, pid, refId } = req.body;
 
-//     // Make request to eSewa verification API
-//     const esewaUrl = `https://uat.esewa.com.np/epay/transrec`;
-    
+//     // Find order first
+//     const order = await Order.findById(pid);
+
+//     if (!order) {
+//       return res.status(404).json({ message: "Order not found" });
+//     }
+
+//     // Verify amount matches database
+//     if (Number(order.totalAmount) !== Number(tAmt)) {
+//       return res.status(400).json({ message: "Amount mismatch" });
+//     }
+
+//     // Prepare verification request
+//     const esewaUrl = "https://uat.esewa.com.np/epay/transrec";
+
 //     const params = new URLSearchParams();
 //     params.append("amt", amt);
 //     params.append("pdc", pdc);
 //     params.append("psc", psc);
 //     params.append("txAmt", txAmt);
 //     params.append("tAmt", tAmt);
-//     params.append("scd", scd);
+//     params.append("scd", process.env.ESEWA_MERCHANT_ID); // ✅ secure
 //     params.append("pid", pid);
 //     params.append("rid", refId);
 
 //     const response = await axios.post(esewaUrl, params, {
-//       headers: { "Content-Type": "application/x-www-form-urlencoded" }
+//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
 //     });
 
-//     // eSewa returns XML, check for SUCCESS
 //     if (response.data.includes("Success")) {
-//       // Payment verified
-//       const order = await Order.findOneAndUpdate(
-//         { _id: pid },
-//         { orderStatus: "ontheway", paymentMethod: "esewa" },
-//         { new: true }
-//       );
 
-//       return res.status(200).json({ message: "Payment verified successfully", order });
+//       // Update order safely
+//       order.paymentStatus = "Paid";
+//       order.paymentMethod = "eSewa";
+//       order.transactionId = refId;
+//       order.orderStatus = "ontheway";
+
+//       await order.save();
+
+//       return res.status(200).json({
+//         message: "Payment verified successfully",
+//         order,
+//       });
 //     }
 
-//     res.status(400).json({ message: "Payment verification failed" });
+//     return res.status(400).json({ message: "Payment verification failed" });
 //   } catch (error) {
 //     console.error(error);
 //     res.status(500).json({ message: "Server error during eSewa verification" });
