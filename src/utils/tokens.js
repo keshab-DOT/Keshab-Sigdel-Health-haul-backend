@@ -7,7 +7,7 @@ export const createJWT = (user) => {
     {
       _id: user._id,
       email: user.email,
-      roles: user.roles, // always keep this as array or string consistently
+      roles: user.roles, 
     },
     config.jwtSecret,
     { expiresIn: "1d" }
@@ -18,13 +18,8 @@ export const createJWT = (user) => {
 export const verifyJWT = async (token) => {
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
-    return decoded; // ✅ always return decoded payload
+    return decoded; 
   } catch (error) {
     throw new Error("Invalid or expired token");
   }
-};
-
-// OTP generator
-export const generateVerificationCode = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
 };

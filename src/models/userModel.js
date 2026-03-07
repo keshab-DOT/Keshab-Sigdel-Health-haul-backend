@@ -18,8 +18,6 @@ const userSchema = new mongoose.Schema({
             enum: ["Pending", "Approved", "Rejected"],
             default: "Pending",
         },
-
-
     });
 
 const User = mongoose.model("User", userSchema);

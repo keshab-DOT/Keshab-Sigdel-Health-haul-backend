@@ -1,6 +1,7 @@
 import userService from "../services/userService.js";
 import { createJWT } from "../utils/tokens.js";
 
+
 const signup = async (req, res) => {
   try {
     const input = req.body;
@@ -61,28 +62,26 @@ const userLogin = async (req, res) => {
   }
 };
 
-const resetPassword = async (email, code, newPassword) => {
-  const user = await User.findOne({ email });
-  if (!user) throw { statusCode: 404, message: "User not found" };
+const resetPassword = async (req, res) => {
+  try {
+    const { email, code, newPassword, confirmPassword } = req.body;
 
-  if (!user.resetPasswordCode)
-    throw { statusCode: 400, message: "Reset code missing" };
+    if (!newPassword || !confirmPassword)
+      return res
+        .status(400)
+        .json({ message: "New Password and Confirm Password are required" });
 
-  if (user.resetPasswordExpiryTime < Date.now())
-    throw { statusCode: 400, message: "Reset code expired" };
+    if (newPassword !== confirmPassword)
+      return res.status(400).json({ message: "Passwords do not match" });
 
-  if (user.resetPasswordCode.toString().trim() !== code.toString().trim())
-    throw { statusCode: 400, message: "Invalid reset code" };
+    const result = await authService.resetPassword(email, code, newPassword);
 
-  const hashedPassword = bcrypt.hashSync(newPassword, 10);
-
-  user.password = hashedPassword;
-  user.resetPasswordCode = null;
-  user.resetPasswordExpiryTime = null;
-
-  await user.save();
-
-  return { message: "Password reset successfully" };
+    res.status(200).json({ success: true, message: result.message });
+  } catch (error) {
+    res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server error" });
+  }
 };
 
 const logout = async (req, res) => {
@@ -94,4 +93,4 @@ const logout = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, resendOtp, userLogin, logout };
+export { signup, verifyEmail, resendOtp, userLogin, resetPassword, logout };

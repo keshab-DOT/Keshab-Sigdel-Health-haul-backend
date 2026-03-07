@@ -2,7 +2,7 @@ import Order from "../models/order.js";
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 
-// CREATE ORDER
+// CREATE ORDER (manual)
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -18,10 +18,6 @@ export const createOrder = async (req, res) => {
     for (const item of products) {
       const product = await Product.findById(item.productId);
       if (!product) return res.status(404).json({ message: "Product not found" });
-      if (item.quantity > product.productTotalStockQuantity) {
-        return res.status(400).json({ message: `Only ${product.productTotalStockQuantity} left in stock` });
-      }
-      await Product.findByIdAndUpdate(product._id, { $inc: { productTotalStockQuantity: -item.quantity } });
       validatedProducts.push({ productId: product._id, quantity: item.quantity });
       totalAmount += product.productPrice * item.quantity;
     }
@@ -47,10 +43,6 @@ export const checkoutCart = async (req, res) => {
 
     for (const item of cartItems) {
       const product = item.productId;
-      if (item.quantity > product.productTotalStockQuantity) {
-        return res.status(400).json({ message: `Only ${product.productTotalStockQuantity} left in stock` });
-      }
-      await Product.findByIdAndUpdate(product._id, { $inc: { productTotalStockQuantity: -item.quantity } });
       products.push({ productId: product._id, quantity: item.quantity });
       totalAmount += product.productPrice * item.quantity;
     }
@@ -63,27 +55,60 @@ export const checkoutCart = async (req, res) => {
   }
 };
 
-// GET ALL ORDERS
-// USER gets only their own orders; PHARMACY and ADMIN get all
+// GET ORDERS
+// ✅ USER → only their own orders
+// ✅ PHARMACY → only orders containing their products
+// ✅ ADMIN → all orders
 export const getOrders = async (req, res) => {
   try {
+    const userId = req.user._id;
     const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
-    const isUserOnly = userRoles.every(r => r === "USER");
 
-    const query = isUserOnly ? { userId: req.user._id } : {};
+    let orders;
 
-    const orders = await Order.find(query)
-      .populate("userId", "name email")
-      // ✅ FIX: populate productId AND its userId (pharmacy info)
-      .populate({
-        path: "products.productId",
-        select: "productName productPrice productImageUrl productDescription userId",
-        populate: {
-          path: "userId",
-          select: "name email roles"
-        }
-      })
-      .sort({ createdAt: -1 });
+    if (userRoles.includes("ADMIN")) {
+      // Admin sees everything
+      orders = await Order.find()
+        .populate("userId", "name email")
+        .populate({
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription userId",
+          populate: { path: "userId", select: "name email" }
+        })
+        .sort({ createdAt: -1 });
+
+    } else if (userRoles.includes("PHARMACY")) {
+      // Pharmacy sees only orders that contain their products
+      const myProducts = await Product.find({ userId }).select("_id");
+      const myProductIds = myProducts.map(p => p._id.toString());
+
+      const allOrders = await Order.find()
+        .populate("userId", "name email")
+        .populate({
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription userId",
+          populate: { path: "userId", select: "name email" }
+        })
+        .sort({ createdAt: -1 });
+
+      // ✅ filter: only orders that have at least one of this pharmacy's products
+      orders = allOrders.filter(order =>
+        order.products.some(item =>
+          item.productId && myProductIds.includes(item.productId._id.toString())
+        )
+      );
+
+    } else {
+      // USER sees only their own orders
+      orders = await Order.find({ userId })
+        .populate("userId", "name email")
+        .populate({
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription userId",
+          populate: { path: "userId", select: "name email" }
+        })
+        .sort({ createdAt: -1 });
+    }
 
     res.json(orders);
   } catch (error) {
@@ -99,10 +124,7 @@ export const getOrderById = async (req, res) => {
       .populate({
         path: "products.productId",
         select: "productName productPrice productImageUrl productDescription userId",
-        populate: {
-          path: "userId",
-          select: "name email roles"
-        }
+        populate: { path: "userId", select: "name email" }
       });
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json(order);
