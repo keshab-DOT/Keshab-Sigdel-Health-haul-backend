@@ -12,6 +12,7 @@ import { initSocket } from "./utils/socket.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import config from "./config/config.js";
+import khaltiRoutes   from "./routes/khaltiRoutes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use("/api/orders",   orderRoutes);
 app.use("/api/admin",    adminRoutes);
 app.use("/api/chat",     chatRoutes);
 app.use("/uploads",      express.static("uploads"));
+app.use("/api/payment/khalti", khaltiRoutes);
 
 app.get("/", (_req, res) => {
   res.json({ name: process.env.NAME, version: process.env.VERSION, message: "Server is running" });
