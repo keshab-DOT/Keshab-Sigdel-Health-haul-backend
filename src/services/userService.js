@@ -9,37 +9,18 @@ const OTP_EXPIRY_MINUTES = 5;
 const signup = async (data) => {
   const existingUser = await User.findOne({ email: data.email });
   if (existingUser) throw { statusCode: 409, message: "User already exists" };
-
   const hashedPassword = bcrypt.hashSync(data.password, 10);
   let selectedRole = USER;
-
-  if (data.role === PHARMACY) {
-    selectedRole = PHARMACY;
-  }
+  if (data.role === PHARMACY) selectedRole = PHARMACY;
   const verificationCode = generateVerificationCode();
   const verificationCodeExpiryTime = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
-
   const signupUser = await User.create({
-    name: data.name,
-    email: data.email,
-    password: hashedPassword,
-    phone: data.phone,
-    isVerified: false,
-    verificationCode,
-    verificationCodeExpiryTime,
-    roles: [selectedRole],
+    name: data.name, email: data.email, password: hashedPassword,
+    phone: data.phone, isVerified: false, verificationCode,
+    verificationCodeExpiryTime, roles: [selectedRole],
   });
-
   await sendVerificationCode(signupUser.email, verificationCode);
-
-  return {
-    _id: signupUser._id,
-    name: signupUser.name,
-    email: signupUser.email,
-    phone: signupUser.phone,
-    roles: signupUser.roles,
-    message: "User created. Check your email for verification code",
-  };
+  return { _id: signupUser._id, name: signupUser.name, email: signupUser.email, phone: signupUser.phone, roles: signupUser.roles };
 };
 
 const verifyEmail = async (email, code) => {
@@ -49,12 +30,10 @@ const verifyEmail = async (email, code) => {
   if (!user.verificationCode) throw { statusCode: 400, message: "Verification code missing" };
   if (user.verificationCodeExpiryTime < Date.now()) throw { statusCode: 400, message: "Verification code expired" };
   if (user.verificationCode.toString().trim() !== code.toString().trim()) throw { statusCode: 400, message: "Invalid verification code" };
-
   user.isVerified = true;
   user.verificationCode = null;
   user.verificationCodeExpiryTime = null;
   await user.save();
-
   return { message: "Email verified successfully" };
 };
 
@@ -62,13 +41,11 @@ const resendOtp = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw { statusCode: 404, message: "User not found" };
   if (user.isVerified) throw { statusCode: 400, message: "User already verified" };
-
   const verificationCode = generateVerificationCode();
   user.verificationCode = verificationCode;
   user.verificationCodeExpiryTime = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
   await user.save();
   await sendVerificationCode(user.email, verificationCode);
-
   return { message: "Verification code resent successfully" };
 };
 
@@ -76,41 +53,35 @@ const login = async (data) => {
   const user = await User.findOne({ email: data.email });
   if (!user) throw { statusCode: 404, message: "User not found" };
   if (!user.isVerified) throw { statusCode: 401, message: "Please verify your email before logging in" };
-
   const isMatch = bcrypt.compareSync(data.password, user.password);
   if (!isMatch) throw { statusCode: 401, message: "Invalid email or password" };
-
-  return {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    roles: user.roles,
-  };
+  return { _id: user._id, name: user.name, email: user.email, phone: user.phone, roles: user.roles };
 };
 
+// ✅ Step 1: Send OTP to email
+const forgotPassword = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) throw { statusCode: 404, message: "No account found with that email" };
+  const resetCode = generateVerificationCode();
+  user.resetPasswordCode = resetCode;
+  user.resetPasswordExpiryTime = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
+  await user.save();
+  await sendVerificationCode(user.email, resetCode);
+  return { message: "Reset code sent to your email" };
+};
+
+// ✅ Step 3: Reset password with verified OTP
 const resetPassword = async (email, code, newPassword) => {
   const user = await User.findOne({ email });
   if (!user) throw { statusCode: 404, message: "User not found" };
-
-  if (!user.resetPasswordCode)
-    throw { statusCode: 400, message: "Reset code missing" };
-
-  if (user.resetPasswordExpiryTime < Date.now())
-    throw { statusCode: 400, message: "Reset code expired" };
-
-  if (user.resetPasswordCode.toString().trim() !== code.toString().trim())
-    throw { statusCode: 400, message: "Invalid reset code" };
-
-  const hashedPassword = bcrypt.hashSync(newPassword, 10);
-
-  user.password = hashedPassword;
+  if (!user.resetPasswordCode) throw { statusCode: 400, message: "Reset code missing" };
+  if (user.resetPasswordExpiryTime < Date.now()) throw { statusCode: 400, message: "Reset code expired" };
+  if (user.resetPasswordCode.toString().trim() !== code.toString().trim()) throw { statusCode: 400, message: "Invalid reset code" };
+  user.password = bcrypt.hashSync(newPassword, 10);
   user.resetPasswordCode = null;
   user.resetPasswordExpiryTime = null;
-
   await user.save();
-
   return { message: "Password reset successfully" };
 };
 
-export default { signup, verifyEmail, login, resetPassword, resendOtp };
+export default { signup, verifyEmail, login, resetPassword, resendOtp, forgotPassword };
