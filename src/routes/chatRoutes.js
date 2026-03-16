@@ -6,12 +6,13 @@ import {
   getChatUsers,
   getMessages,
   sendMessage,
+  deleteMessage,
   getUnreadCount,
 } from "../controllers/chatcontroller.js";
 
 const router = express.Router();
 
-// ── Multer for chat image uploads 
+// ── Multer for chat image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename:    (req, file, cb) => {
@@ -33,9 +34,10 @@ const upload = multer({
 });
 
 // ── Routes (all protected)
-router.get("/users",            auth(), getChatUsers);
-router.get("/messages/:userId", auth(), getMessages);
-router.post("/send/:userId",    auth(), upload.single("image"), sendMessage);
-router.get("/unread-count",     auth(), getUnreadCount);
+router.get("/users",                      auth(), getChatUsers);
+router.get("/messages/:userId",           auth(), getMessages);
+router.post("/send/:userId",              auth(), upload.single("image"), sendMessage);
+router.delete("/messages/:messageId",     auth(), deleteMessage);
+router.get("/unread-count",               auth(), getUnreadCount);
 
 export default router;

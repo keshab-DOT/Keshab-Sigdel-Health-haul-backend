@@ -7,9 +7,6 @@ const hasRole = (user, role) =>
   user?.roles?.some((r) => r.toLowerCase() === role.toLowerCase()) ?? false;
 
 // GET /api/chat/users
-// - User sees all pharmacies
-// - Pharmacy sees all users
-// - Admin sees everyone
 export const getChatUsers = async (req, res) => {
   try {
     const myId = req.user._id;
@@ -20,13 +17,13 @@ export const getChatUsers = async (req, res) => {
 
     let roleFilter;
     if (iAmAdmin) {
-      // Admin can chat with anyone
-      roleFilter = {};
+      // Admin can only chat with pharmacies
+      roleFilter = { roles: { $elemMatch: { $regex: /^pharmacy$/i } } };
     } else if (iAmPharmacy) {
-      // Pharmacy chats with users
-      roleFilter = { roles: { $elemMatch: { $regex: /^user$/i } } };
+      // Pharmacy can chat with both users AND admins
+      roleFilter = { roles: { $elemMatch: { $regex: /^(user|admin)$/i } } };
     } else {
-      // User chats with pharmacies
+      // User can only chat with pharmacies
       roleFilter = { roles: { $elemMatch: { $regex: /^pharmacy$/i } } };
     }
 
@@ -37,7 +34,6 @@ export const getChatUsers = async (req, res) => {
       .select("name email roles profileImage")
       .lean();
 
-    // Get last message preview for each conversation
     const messages = await Message.find({
       $or: [{ senderId: myId }, { receiverId: myId }],
     })
@@ -61,7 +57,6 @@ export const getChatUsers = async (req, res) => {
       hasConversation: conversationMap.has(u._id.toString()),
     }));
 
-    // Sort: active conversations first, then alphabetically
     result.sort((a, b) => {
       if (a.hasConversation && !b.hasConversation) return -1;
       if (!a.hasConversation && b.hasConversation) return 1;
@@ -91,7 +86,6 @@ export const getMessages = async (req, res) => {
       ],
     }).sort({ createdAt: 1 });
 
-    // Mark received messages as read
     await Message.updateMany(
       { senderId: userId, receiverId: myId, isRead: false },
       { isRead: true }
@@ -104,7 +98,6 @@ export const getMessages = async (req, res) => {
 };
 
 // POST /api/chat/send/:userId
-// Supports text and optional image (via multer: req.file)
 export const sendMessage = async (req, res) => {
   try {
     const { userId: receiverId } = req.params;
@@ -126,11 +119,41 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
     });
 
-    // Emit to receiver in real time
     const io = getIO();
     io.to(`user:${receiverId}`).emit("newMessage", newMessage);
 
     res.status(201).json({ message: newMessage });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// DELETE /api/chat/messages/:messageId
+// Only the sender can delete their own message
+export const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const myId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(messageId))
+      return res.status(400).json({ message: "Invalid message ID" });
+
+    const message = await Message.findById(messageId);
+
+    if (!message)
+      return res.status(404).json({ message: "Message not found" });
+
+    // Only the sender can delete
+    if (message.senderId.toString() !== myId.toString())
+      return res.status(403).json({ message: "You can only delete your own messages" });
+
+    await message.deleteOne();
+
+    // Notify the receiver in real time so their UI updates too
+    const io = getIO();
+    io.to(`user:${message.receiverId}`).emit("messageDeleted", { messageId });
+
+    res.status(200).json({ message: "Message deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
