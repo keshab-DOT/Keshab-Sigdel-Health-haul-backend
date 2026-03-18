@@ -20,6 +20,7 @@ const notificationSchema = new mongoose.Schema({
       "PRODUCT_REJECTED", // → pharmacy: product rejected by admin
       "PAYMENT_RECEIVED", // → pharmacy: khalti payment confirmed
       "PAYMENT_SUCCESS", // → user: khalti payment confirmed
+      "LOW_STOCK", // → pharmacy: product stock hit 0
     ],
     required: true,
   },
