@@ -14,6 +14,7 @@ import cors from "cors";
 import config from "./config/config.js";
 import khaltiRoutes   from "./routes/khaltiroutes.js";
 import notificationRoutes  from "./routes/notificationroutes.js";
+import ratingReviewRoutes from "./routes/ratingreviewroutes.js";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use("/api/chat",     chatRoutes);
 app.use("/uploads",      express.static("uploads"));
 app.use("/api/payment/khalti", khaltiRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/reviews", ratingReviewRoutes);
 
 app.get("/", (_req, res) => {
   res.json({ name: process.env.NAME, version: process.env.VERSION, message: "Server is running" });
