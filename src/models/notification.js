@@ -18,6 +18,7 @@ const notificationSchema = new mongoose.Schema({
       "ORDER_STATUS", // → user: order status changed
       "PRODUCT_APPROVED", // → pharmacy: product approved by admin
       "PRODUCT_REJECTED", // → pharmacy: product rejected by admin
+      "PRODUCT_APPROVAL_NEEDED", // → pharmacy: new product awaiting admin approval
       "PAYMENT_RECEIVED", // → pharmacy: khalti payment confirmed
       "PAYMENT_SUCCESS", // → user: khalti payment confirmed
       "LOW_STOCK", // → pharmacy: product stock hit 0

@@ -21,7 +21,7 @@ export const updateProductApproval = async (req, res) => {
       type: approvalStatus === "Approved" ? "PRODUCT_APPROVED" : "PRODUCT_REJECTED",
       title: approvalStatus === "Approved" ? "✅ Product Approved" : "❌ Product Rejected",
       message: approvalStatus === "Approved"
-        ? `Your product "${product.productName}" has been approved and is now live on the platform.`
+        ? `Your product "${product.productName}" has been approved and is now available on the page.`
         : `Your product "${product.productName}" was rejected by admin. Please review and resubmit.`,
       productId: product._id,
     });

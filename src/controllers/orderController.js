@@ -1,19 +1,19 @@
-import Order   from "../models/order.js";
-import Cart    from "../models/cart.js";
+import Order from "../models/order.js";
+import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
+// Stock decrement + pharmacy notifications (ORDER_PLACED + LOW_STOCK)
 const decrementStockAndNotify = async (products, orderId) => {
-  const notifiedPharmacies = new Set(); // avoid duplicate ORDER_PLACED per pharmacy
+  const notifiedPharmacies = new Set();
 
   for (const item of products) {
     const product = await Product.findById(item.productId);
     if (!product) continue;
 
     const prevStock = product.productTotalStockQuantity;
-    const newStock  = Math.max(0, prevStock - item.quantity);
+    const newStock = Math.max(0, prevStock - item.quantity);
 
-    // Decrement stock and sync stockStatus field
     product.productTotalStockQuantity = newStock;
     product.stockStatus = newStock === 0 ? "Out of Stock" : "In Stock";
     await product.save();
@@ -21,15 +21,15 @@ const decrementStockAndNotify = async (products, orderId) => {
     const pharmacyId = product.userId?.toString();
     if (!pharmacyId) continue;
 
-    // ORDER_PLACED → pharmacy (only once per pharmacy per order)
+    // ORDER_PLACED → pharmacy (once per pharmacy per order)
     if (!notifiedPharmacies.has(pharmacyId)) {
       notifiedPharmacies.add(pharmacyId);
       await createNotification({
-        recipientId:   product.userId,
+        recipientId: product.userId,
         recipientRole: "PHARMACY",
         type: "ORDER_PLACED",
         title: "📦 New Order Received",
-        message: `A new order has been placed containing your products. Please prepare it for delivery.`,
+        message: "A new order has been placed containing your products. Please prepare it for delivery.",
         orderId,
       });
     }
@@ -48,15 +48,16 @@ const decrementStockAndNotify = async (products, orderId) => {
   }
 };
 
-// CREATE ORDER 
+
+
+// CREATE ORDER (manual)
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user._id;
     const { products, shippingAddress, phoneNumber, paymentMethod } = req.body;
 
-    if (!products || !products.length) {
+    if (!products || !products.length)
       return res.status(400).json({ message: "Products are required" });
-    }
 
     let totalAmount = 0;
     const validatedProducts = [];
@@ -73,7 +74,7 @@ export const createOrder = async (req, res) => {
       shippingAddress, phoneNumber, totalAmount, paymentMethod,
     });
 
-    // Decrement stock + notify pharmacy on order placed / out of stock
+    // Decrement stock + notify pharmacy
     await decrementStockAndNotify(validatedProducts, order._id);
 
     res.status(201).json({ message: "Order placed successfully", order });
@@ -82,7 +83,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// CHECKOUT CART 
+// CHECKOUT CART
 export const checkoutCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -105,19 +106,18 @@ export const checkoutCart = async (req, res) => {
       userId, products, shippingAddress, phoneNumber, totalAmount, paymentMethod,
     });
 
-    // Clear cart right after order is created
     await Cart.deleteMany({ userId });
 
-    // Decrement stock + notify pharmacy
+    // Decrement stock + notify pharmacy (ORDER_PLACED + LOW_STOCK)
     await decrementStockAndNotify(products, order._id);
 
-    // Notify USER — order placed successfully
+    // Notify USER — order placed
     const methodLabel = paymentMethod === "khalti" ? "Khalti" : "Cash on Delivery";
     await createNotification({
-      recipientId:   userId,
+      recipientId: userId,
       recipientRole: "USER",
       type: "ORDER_PLACED",
-      title: " Order Placed Successfully",
+      title: "✅ Order Placed Successfully",
       message: `Your order of Rs. ${totalAmount.toLocaleString()} via ${methodLabel} has been placed and is pending.`,
       orderId: order._id,
     });
@@ -128,9 +128,10 @@ export const checkoutCart = async (req, res) => {
   }
 };
 
+// GET ORDERS
 export const getOrders = async (req, res) => {
   try {
-    const userId    = req.user._id;
+    const userId = req.user._id;
     const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
 
     let orders;
@@ -139,23 +140,21 @@ export const getOrders = async (req, res) => {
       orders = await Order.find()
         .populate("userId", "name email")
         .populate({
-          path:     "products.productId",
-          // ✅ productTotalStockQuantity + stockStatus now included
-          // so the pharmacy dashboard can show stock remaining per product
-          select:   "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
 
     } else if (userRoles.includes("PHARMACY")) {
-      const myProducts   = await Product.find({ userId }).select("_id");
+      const myProducts = await Product.find({ userId }).select("_id");
       const myProductIds = myProducts.map(p => p._id.toString());
 
       const allOrders = await Order.find()
         .populate("userId", "name email")
         .populate({
-          path:     "products.productId",
-          select:   "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
@@ -170,8 +169,8 @@ export const getOrders = async (req, res) => {
       orders = await Order.find({ userId })
         .populate("userId", "name email")
         .populate({
-          path:     "products.productId",
-          select:   "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          path: "products.productId",
+          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
@@ -183,14 +182,14 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// GET ORDER BY ID 
+// GET ORDER BY ID
 export const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate("userId", "name email")
       .populate({
-        path:     "products.productId",
-        select:   "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+        path: "products.productId",
+        select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
         populate: { path: "userId", select: "name email" },
       });
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -200,7 +199,7 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-// UPDATE ORDER STATUS (pharmacy / admin) 
+// UPDATE ORDER STATUS (pharmacy / admin) — notifies user
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderStatus } = req.body;
@@ -214,27 +213,26 @@ export const updateOrderStatus = async (req, res) => {
     if (!updatedOrder)
       return res.status(404).json({ message: "Order not found" });
 
-    // Notify the customer about their order status change
     const statusTitles = {
-      pending:   "⏳ Order Pending",
+      pending: "⏳ Order Pending",
       delivered: "🎉 Order Delivered",
       cancelled: "❌ Order Cancelled",
     };
     const statusMessages = {
-      pending:   "Your order is pending confirmation.",
-      ontheway:  "Great news! Your order is on its way to you.",
+      pending: "Your order is pending confirmation.",
+      ontheway: "Great news! Your order is on its way to you.",
       delivered: "Your order has been delivered. Enjoy your medicines!",
       cancelled: "Your order has been cancelled.",
     };
 
     if (updatedOrder.userId?._id) {
       await createNotification({
-        recipientId:   updatedOrder.userId._id,
+        recipientId: updatedOrder.userId._id,
         recipientRole: "USER",
-        type:          "ORDER_STATUS",
-        title:         statusTitles[orderStatus] || "Order Updated",
-        message:       statusMessages[orderStatus] || `Your order status is now: ${orderStatus}`,
-        orderId:       updatedOrder._id,
+        type: "ORDER_STATUS",
+        title: statusTitles[orderStatus] || "Order Updated",
+        message: statusMessages[orderStatus] || `Your order status is now: ${orderStatus}`,
+        orderId: updatedOrder._id,
       });
     }
 
