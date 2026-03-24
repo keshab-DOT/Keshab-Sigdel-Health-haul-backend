@@ -12,7 +12,7 @@ import notificationRoutes from "./routes/notificationroutes.js";
 import cookieParser from "cookie-parser";
 import chatRoutes from "./routes/chatRoutes.js";
 import ratingReviewRoutes from "./routes/ratingreviewroutes.js";
-
+import { initSocket } from "./utils/socket.js";
 import cors from "cors";
 
 dotenv.config();
@@ -35,21 +35,25 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment/khalti", khaltiRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/chat",chatRoutes);
-app.use("/uploads", express.static("uploads")); // ← serves uploaded images
+app.use("/api/chat", chatRoutes);
+app.use("/uploads", express.static("uploads"));
 app.use("/api/reviews", ratingReviewRoutes);
 
 app.get("/", (_req, res) => res.json({ message: "HealthHaul API running" }));
 
 const PORT = process.env.PORT || 3000;
+
 const startServer = async () => {
   try {
     await connectDB();
-    http.createServer(app).listen(PORT, () =>
+    const server = http.createServer(app);
+    initSocket(server);
+    server.listen(PORT, () =>
       console.log(`Server running on http://localhost:${PORT}`)
     );
   } catch (err) {
     console.error("Database connection failed:", err.message);
   }
 };
+
 startServer();
