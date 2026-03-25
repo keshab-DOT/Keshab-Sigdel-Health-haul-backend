@@ -1,5 +1,7 @@
 import userService from "../services/userService.js";
 import { createJWT } from "../utils/tokens.js";
+import User from "../models/userModel.js";
+import bcrypt from "bcryptjs";
 
 const signup = async (req, res) => {
   try {
@@ -41,7 +43,6 @@ const userLogin = async (req, res) => {
     const user = await userService.login(input);
     const authToken = createJWT(user);
 
-    // Set cookie as backup
     res.cookie("authToken", authToken, {
       httpOnly: true,
       secure: false,
@@ -49,7 +50,6 @@ const userLogin = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    // Also send token in response body so frontend saves it in localStorage
     res.status(200).json({ message: "Login successful", user, token: authToken });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message || "Server error" });
@@ -94,4 +94,72 @@ const logout = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, resendOtp, userLogin, forgotPassword, resetPassword, logout };
+// NEW: Update profile (name, phone, + pharmacy-only fields)
+const updateProfile = async (req, res) => {
+  try {
+    // req.user is set by the auth middleware
+    const userId = req.user._id;
+
+    const { name, phone, address, licenseNumber, description } = req.body;
+
+    if (!name || !name.trim())
+      return res.status(400).json({ message: "Name is required" });
+
+    // Build update object only include fields that were sent
+    const updates = { name: name.trim() };
+    if (phone !== undefined)           updates.phone           = phone;
+    if (address !== undefined)         updates.address         = address;
+    if (licenseNumber !== undefined)   updates.licenseNumber   = licenseNumber;
+    if (description !== undefined)     updates.description     = description;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password -verificationCode -verificationCodeExpiryTime -resetPasswordCode -resetPasswordExpiryTime");
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+// Change password (requires current password verification)
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword)
+      return res.status(400).json({ message: "All password fields are required" });
+
+    if (newPassword !== confirmPassword)
+      return res.status(400).json({ message: "New passwords do not match" });
+
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+
+    // Fetch user WITH password for comparison
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = bcrypt.compareSync(currentPassword, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Current password is incorrect" });
+
+    user.password = bcrypt.hashSync(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+export { signup, verifyEmail, resendOtp, userLogin, forgotPassword, resetPassword, logout, updateProfile, changePassword,};
