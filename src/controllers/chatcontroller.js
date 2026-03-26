@@ -17,13 +17,10 @@ export const getChatUsers = async (req, res) => {
 
     let roleFilter;
     if (iAmAdmin) {
-      // Admin can only chat with pharmacies
       roleFilter = { roles: { $elemMatch: { $regex: /^pharmacy$/i } } };
     } else if (iAmPharmacy) {
-      // Pharmacy can chat with both users AND admins
       roleFilter = { roles: { $elemMatch: { $regex: /^(user|admin)$/i } } };
     } else {
-      // User can only chat with pharmacies
       roleFilter = { roles: { $elemMatch: { $regex: /^pharmacy$/i } } };
     }
 
@@ -51,10 +48,20 @@ export const getChatUsers = async (req, res) => {
       }
     });
 
+    // Aggregate unread counts grouped by sender
+    const unreadCounts = await Message.aggregate([
+      { $match: { receiverId: new mongoose.Types.ObjectId(myId), isRead: false } },
+      { $group: { _id: "$senderId", count: { $sum: 1 } } },
+    ]);
+    const unreadMap = new Map(
+      unreadCounts.map((r) => [r._id.toString(), r.count])
+    );
+
     const result = allUsers.map((u) => ({
       ...u,
       lastMessage:     conversationMap.get(u._id.toString()) || null,
       hasConversation: conversationMap.has(u._id.toString()),
+      unreadCount:     unreadMap.get(u._id.toString()) || 0,
     }));
 
     result.sort((a, b) => {
@@ -129,7 +136,6 @@ export const sendMessage = async (req, res) => {
 };
 
 // DELETE /api/chat/messages/:messageId
-// Only the sender can delete their own message
 export const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -143,13 +149,11 @@ export const deleteMessage = async (req, res) => {
     if (!message)
       return res.status(404).json({ message: "Message not found" });
 
-    // Only the sender can delete
     if (message.senderId.toString() !== myId.toString())
       return res.status(403).json({ message: "You can only delete your own messages" });
 
     await message.deleteOne();
 
-    // Notify the receiver in real time so their UI updates too
     const io = getIO();
     io.to(`user:${message.receiverId}`).emit("messageDeleted", { messageId });
 
