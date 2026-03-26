@@ -37,7 +37,8 @@ export const getChatUsers = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const conversationMap = new Map();
+    const conversationMap = new Map();   // otherId -> lastMessage text
+    const lastMessageAtMap = new Map();  // otherId -> most recent message timestamp
     messages.forEach((m) => {
       const otherId =
         m.senderId.toString() === myId.toString()
@@ -45,6 +46,7 @@ export const getChatUsers = async (req, res) => {
           : m.senderId.toString();
       if (!conversationMap.has(otherId)) {
         conversationMap.set(otherId, m.image ? "📷 Image" : m.text || "");
+        lastMessageAtMap.set(otherId, new Date(m.createdAt).getTime());
       }
     });
 
@@ -62,11 +64,14 @@ export const getChatUsers = async (req, res) => {
       lastMessage:     conversationMap.get(u._id.toString()) || null,
       hasConversation: conversationMap.has(u._id.toString()),
       unreadCount:     unreadMap.get(u._id.toString()) || 0,
+      lastMessageAt:   lastMessageAtMap.get(u._id.toString()) || 0,
     }));
 
+    // Sort: most recently messaged first; no-message users fall to bottom alphabetically
     result.sort((a, b) => {
       if (a.hasConversation && !b.hasConversation) return -1;
       if (!a.hasConversation && b.hasConversation) return 1;
+      if (a.hasConversation && b.hasConversation) return b.lastMessageAt - a.lastMessageAt;
       return a.name.localeCompare(b.name);
     });
 

@@ -24,14 +24,16 @@ const userSchema = new mongoose.Schema(
 
     // Admin-managed fields 
     status: {
-      type: String, 
-      enum: ["Active", "Suspended", "Banned"], 
+      type: String,
+      enum: ["Active", "Suspended", "Banned"],
       default: "Active",
     },
-    approvalStatus: { 
-      type: String, 
-      enum: ["Pending", "Approved", "Rejected"], 
-      default: "Pending", },
+    approvalStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+
   },
   { timestamps: true }   // adds createdAt / updatedAt automatically
 );
