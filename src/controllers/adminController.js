@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Product  from "../models/product.js";
-import User     from "../models/userModel.js";
+import Product from "../models/product.js";
+import User from "../models/userModel.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
 // Get All Users (without password)
@@ -18,7 +18,7 @@ export const getAllUsers = async (req, res) => {
 // Update User Status (Active / Suspended / Banned)
 export const updateUserStatus = async (req, res) => {
   try {
-    const { id }     = req.params;
+    const { id } = req.params;
     const { status } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id))
@@ -57,7 +57,7 @@ export const getAllProducts = async (req, res) => {
 // Approve or Reject Product — notifies pharmacy
 export const updateProductApproval = async (req, res) => {
   try {
-    const { id }             = req.params;
+    const { id } = req.params;
     const { approvalStatus } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id))
@@ -74,11 +74,11 @@ export const updateProductApproval = async (req, res) => {
 
     // Notify the pharmacy that owns this product
     await createNotification({
-      recipientId:   product.userId,
+      recipientId: product.userId,
       recipientRole: "PHARMACY",
-      type:          approvalStatus === "Approved" ? "PRODUCT_APPROVED" : "PRODUCT_REJECTED",
-      title:         approvalStatus === "Approved" ? "✅ Product Approved" : "❌ Product Rejected",
-      message:       approvalStatus === "Approved"
+      type: approvalStatus === "Approved" ? "PRODUCT_APPROVED" : "PRODUCT_REJECTED",
+      title: approvalStatus === "Approved" ? "✅ Product Approved" : "❌ Product Rejected",
+      message: approvalStatus === "Approved"
         ? `Your product "${product.productName}" has been approved and is now live on the platform.`
         : `Your product "${product.productName}" was rejected by admin. Please review and resubmit.`,
       productId: product._id,

@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema(
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
     },
+    location: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      address: { type: String, default: "" },
+    },
 
   },
   { timestamps: true }   // adds createdAt / updatedAt automatically
