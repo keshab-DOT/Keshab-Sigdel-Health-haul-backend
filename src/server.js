@@ -7,11 +7,11 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import khaltiRoutes from "./routes/khaltiroutes.js";
-import notificationRoutes from "./routes/notificationroutes.js";
+import khaltiRoutes from "./routes/khaltiRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import cookieParser from "cookie-parser";
 import chatRoutes from "./routes/chatRoutes.js";
-import ratingReviewRoutes from "./routes/ratingreviewroutes.js";
+import ratingReviewRoutes from "./routes/ratingreviewRoutes.js";
 import { initSocket } from "./utils/socket.js";
 import cors from "cors";
 

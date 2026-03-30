@@ -1,6 +1,3 @@
-// khaltiRoutes.js
-// Place at: backend/routes/khaltiRoutes.js
-
 import express from "express";
 import { initiateKhaltiPayment, verifyKhaltiPayment } from "../controllers/khalticontroller.js";
 import auth         from "../middleware/authMiddleware.js";
