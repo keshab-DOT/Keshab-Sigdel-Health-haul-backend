@@ -22,7 +22,7 @@ const app = express();
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
-      "http://localhost:5173",
+      "https://healthhaul.netlify.app",
       "http://localhost:3000",
       process.env.FRONTEND_URL,
     ].filter(Boolean);
@@ -37,9 +37,11 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH",],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ✅ Added OPTIONS
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+app.options("*", cors()); // ✅ Handle preflight requests for all routes
 
 app.use(express.json());
 app.use(cookieParser());
