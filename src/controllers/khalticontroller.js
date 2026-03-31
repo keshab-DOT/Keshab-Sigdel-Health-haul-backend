@@ -44,7 +44,7 @@ export const initiateKhaltiPayment = async (req, res) => {
     if (amountPaisa < 1000)
       return res.status(400).json({ message: "Minimum order amount for Khalti is Rs. 10" });
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "https://healthhaul.netlify.app";
     const returnUrl   = `${frontendUrl}/payment/result`;
 
     const productDetails = order.products.map((item) => {
