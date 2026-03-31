@@ -41,7 +41,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-app.options("*", cors()); // ✅ Handle preflight requests for all routes
+app.options("/*", cors()); // ✅ Handle preflight requests for all routes
 
 app.use(express.json());
 app.use(cookieParser());
