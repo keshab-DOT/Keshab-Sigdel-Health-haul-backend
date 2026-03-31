@@ -20,9 +20,25 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: "https://healthhaul.netlify.app",
+  origin: (origin, callback) => {
+    const allowed = [
+      "http://healthhaul.netlify.app",
+      "https://keshab-sigdel-health-haul-backend.onrender.com",
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+
+    if (!origin) return callback(null, true);
+
+    if (allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("Blocked origin:", origin);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH",],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 app.use(express.json());
