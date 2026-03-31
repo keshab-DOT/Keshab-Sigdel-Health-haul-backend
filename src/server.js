@@ -22,8 +22,8 @@ const app = express();
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
-      "http://healthhaul.netlify.app",
-      "https://keshab-sigdel-health-haul-backend.onrender.com",
+      "http://localhost:5173",
+      "http://localhost:3000",
       process.env.FRONTEND_URL,
     ].filter(Boolean);
 
