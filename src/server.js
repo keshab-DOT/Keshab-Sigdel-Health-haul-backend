@@ -7,7 +7,7 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import khaltiRoutes from "./routes/khaltiRoutes.js";
+import khaltiRoutes from "./routes/khaltiRoutes.js"; // fixed routs cache issue by renaming to khaltiRoutes
 import notificationRoutes from "./routes/notificationRoutes.js";
 import cookieParser from "cookie-parser";
 import chatRoutes from "./routes/chatRoutes.js";
