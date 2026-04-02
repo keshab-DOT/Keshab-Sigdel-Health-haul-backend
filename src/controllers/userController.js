@@ -10,8 +10,36 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: "Password and Confirm Password are required" });
     if (input.password !== input.confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
-    const user = await userService.signup(input);
-    res.status(201).json({ message: "User registered successfully. Check your email for verification code.", user });
+
+    // userService.signup handles saving user + sending email internally
+    // We need to ensure email failure doesn't crash this endpoint
+    let user;
+    try {
+      user = await userService.signup(input);
+    } catch (serviceError) {
+      // If it's a known error (e.g. user exists), pass it through
+      if (serviceError.statusCode) {
+        return res.status(serviceError.statusCode).json({ message: serviceError.message });
+      }
+      // Otherwise it might be an email/network error — check if user was created
+      // by looking up the email
+      const existingUser = await User.findOne({ email: input.email }).select("-password");
+      if (existingUser) {
+        // User was saved but email failed — return success anyway
+        console.error("Email sending failed (non-fatal):", serviceError.message);
+        return res.status(201).json({
+          message: "User registered successfully. Email verification may be delayed.",
+          user: existingUser,
+        });
+      }
+      // User wasn't saved either — real error
+      throw serviceError;
+    }
+
+    res.status(201).json({
+      message: "User registered successfully. Check your email for verification code.",
+      user,
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message || "Server error" });
   }
@@ -45,8 +73,8 @@ const userLogin = async (req, res) => {
 
     res.cookie("authToken", authToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // ← secure in prod
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // ← "none" needed for cross-site cookies
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -85,8 +113,8 @@ const logout = async (req, res) => {
   try {
     res.clearCookie("authToken", {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
     res.status(200).json({ message: "Logout successful" });
   } catch (error) {
@@ -94,23 +122,19 @@ const logout = async (req, res) => {
   }
 };
 
-// NEW: Update profile (name, phone, + pharmacy-only fields)
 const updateProfile = async (req, res) => {
   try {
-    // req.user is set by the auth middleware
     const userId = req.user._id;
-
     const { name, phone, address, licenseNumber, description } = req.body;
 
     if (!name || !name.trim())
       return res.status(400).json({ message: "Name is required" });
 
-    // Build update object only include fields that were sent
     const updates = { name: name.trim() };
-    if (phone !== undefined)           updates.phone           = phone;
-    if (address !== undefined)         updates.address         = address;
-    if (licenseNumber !== undefined)   updates.licenseNumber   = licenseNumber;
-    if (description !== undefined)     updates.description     = description;
+    if (phone !== undefined)         updates.phone         = phone;
+    if (address !== undefined)       updates.address       = address;
+    if (licenseNumber !== undefined) updates.licenseNumber = licenseNumber;
+    if (description !== undefined)   updates.description   = description;
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -121,16 +145,12 @@ const updateProfile = async (req, res) => {
     if (!updatedUser)
       return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json({
-      message: "Profile updated successfully",
-      user: updatedUser,
-    });
+    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
   } catch (error) {
     res.status(500).json({ message: error.message || "Server error" });
   }
 };
 
-// Change password (requires current password verification)
 const changePassword = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -138,14 +158,11 @@ const changePassword = async (req, res) => {
 
     if (!currentPassword || !newPassword || !confirmPassword)
       return res.status(400).json({ message: "All password fields are required" });
-
     if (newPassword !== confirmPassword)
       return res.status(400).json({ message: "New passwords do not match" });
-
     if (newPassword.length < 6)
       return res.status(400).json({ message: "Password must be at least 6 characters" });
 
-    // Fetch user WITH password for comparison
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -162,4 +179,14 @@ const changePassword = async (req, res) => {
   }
 };
 
-export { signup, verifyEmail, resendOtp, userLogin, forgotPassword, resetPassword, logout, updateProfile, changePassword,};
+export {
+  signup,
+  verifyEmail,
+  resendOtp,
+  userLogin,
+  forgotPassword,
+  resetPassword,
+  logout,
+  updateProfile,
+  changePassword,
+};

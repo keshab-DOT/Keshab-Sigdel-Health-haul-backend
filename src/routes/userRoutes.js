@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { signup, verifyEmail, resendOtp, userLogin, logout, forgotPassword, resetPassword,   updateProfile, changePassword, } from "../controllers/userController.js";
+import { signup, verifyEmail, resendOtp, userLogin, logout,
+   forgotPassword, resetPassword, updateProfile, changePassword, } 
+   from "../controllers/userController.js";
 import auth from "../middleware/authMiddleware.js";
 
 const router = Router();
@@ -9,10 +11,10 @@ router.post("/verifyEmail", verifyEmail);
 router.post("/resendOtp", resendOtp);
 router.post("/login", userLogin);
 router.post("/logout", logout);
-router.post("/forgot-password", forgotPassword); 
-router.post("/reset-password", resetPassword); 
-router.put("/update-profile",   auth(), updateProfile);
-router.put("/change-password",  auth(), changePassword);    
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+router.put("/update-profile", auth(), updateProfile);
+router.put("/change-password", auth(), changePassword);
 
 router.get("/user/:id", async (req, res) => {
   try {
@@ -24,10 +26,7 @@ router.get("/user/:id", async (req, res) => {
   }
 });
 
-// NEW: pharmacy saves its GPS location to DB 
-// Called by PharmacyDashboard's watchPosition callback so the pharmacy's
-// location persists in the DB — users can then see it on a fresh page load
-// even before the socket stream delivers a live update
+// NEW: pharmacy saves its GPS location to DB for delivery purposes
 router.put("/update-location", auth(), async (req, res) => {
   try {
     const { latitude, longitude, address } = req.body;
@@ -35,9 +34,9 @@ router.put("/update-location", auth(), async (req, res) => {
       return res.status(400).json({ message: "latitude and longitude are required" });
     }
     await User.findByIdAndUpdate(req.user._id, {
-      "location.latitude":  Number(latitude),
+      "location.latitude": Number(latitude),
       "location.longitude": Number(longitude),
-      "location.address":   address ?? "",
+      "location.address": address ?? "",
     });
     res.json({ success: true });
   } catch (err) {

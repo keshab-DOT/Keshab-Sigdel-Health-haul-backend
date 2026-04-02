@@ -1,3 +1,6 @@
+import dns from "dns";
+dns.setDefaultResultOrder("ipv4first");
+
 import express from "express";
 import dotenv from "dotenv";
 import http from "http";
@@ -23,13 +26,11 @@ const app = express();
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-
   const allowed = [
     "http://localhost:5173",
     "http://localhost:3000",
     process.env.FRONTEND_URL,
   ].filter(Boolean);
-
   return allowed.includes(origin);
 };
 
@@ -60,10 +61,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/reviews", ratingReviewRoutes);
 
-// Static
 app.use("/uploads", express.static("uploads"));
 
-// Health check
 app.get("/", (_req, res) => {
   res.json({ message: "HealthHaul API running" });
 });
@@ -78,12 +77,9 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     await connectDB();
-
     const server = http.createServer(app);
-
     const io = initSocket(server);
     app.set("io", io);
-
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
