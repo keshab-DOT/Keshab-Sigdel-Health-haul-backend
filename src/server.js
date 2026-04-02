@@ -15,52 +15,55 @@ import ratingReviewRoutes from "./routes/ratingreviewRoutes.js";
 import { initSocket } from "./utils/socket.js";
 import cors from "cors";
 
-// debuggig issue
-const originalRoute = express.Router.prototype.route;
-express.Router.prototype.route = function (path) {
-  try {
-    return originalRoute.call(this, path);
-  } catch (err) {
-    console.error(" BROKEN ROUTE PATH:", path);
-    throw err;
-  }
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (origin === "http://localhost:5173") return true;
+  if (origin === "http://localhost:3000") return true;
+  if (origin === process.env.FRONTEND_URL) return true;
+  return false;
 };
 
-const originalUse = express.Router.prototype.use;
-express.Router.prototype.use = function (...args) {
-  try {
-    return originalUse.apply(this, args);
-  } catch (err) {
-    console.error("❌ BROKEN USE PATH:", args[0]);
-    throw err;
-  }
-};
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("Blocked origin:", origin);
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = [
-      "https://healthhaul.netlify.app",
-      "http://localhost:3000",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean);
+// app.use(cors({
+//   origin: (origin, callback) => {
+//     const allowed = [
+//       "https://healthhaul.netlify.app",
+//       "http://localhost:3000",
+//       process.env.FRONTEND_URL,
+//     ].filter(Boolean);
 
-    if (!origin) return callback(null, true);
+//     if (!origin) return callback(null, true);
 
-    if (allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("Blocked origin:", origin);
-      callback(new Error(`CORS: origin ${origin} not allowed`));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+//     if (allowed.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       console.log("Blocked origin:", origin);
+//       callback(new Error(`CORS: origin ${origin} not allowed`));
+//     }
+//   },
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+// }));
 
 // app.options("*", cors());
 
