@@ -1,26 +1,21 @@
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import config from "../config/config.js";
+
+sgMail.setApiKey(config.sendgridApiKey);
 
 export const sendVerificationCode = async (email, code) => {
   if (!email) throw new Error("Email recipient is missing");
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    port: 465,
-    secure: true,
-    auth: {
-      user: config.smtp_mail,
-      pass: config.smtp_password,
-    },
-  });
+  console.log("[Email] Sending to:", email);
 
-  const mailOptions = {
-    from: config.smtp_mail,
+  const msg = {
     to: email,
+    from: config.emailFrom,
     subject: "Verify your email",
     html: `<p>Your verification code is: <b>${code}</b></p>
            <p>This code will expire in 15 minutes.</p>`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sgMail.send(msg);
+  console.log("[Email] Sent successfully");
 };
