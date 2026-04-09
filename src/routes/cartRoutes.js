@@ -10,7 +10,6 @@ import auth from "../middleware/authMiddleware.js";
 import { USER } from "../constants/roles.js";
 import roleBasedAuth from "../middleware/rolebased.js";
 
-
 const router = express.Router();
 
 router.post("/add", auth(), roleBasedAuth([USER]), addToCart);

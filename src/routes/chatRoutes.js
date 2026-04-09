@@ -12,10 +12,10 @@ import {
 
 const router = express.Router();
 
-// ── Multer for chat image uploads
+// chat image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename:    (req, file, cb) => {
+  filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${unique}${path.extname(file.originalname)}`);
   },
@@ -26,18 +26,20 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp/;
-    if (allowed.test(path.extname(file.originalname).toLowerCase()) && allowed.test(file.mimetype))
+    if (
+      allowed.test(path.extname(file.originalname).toLowerCase()) &&
+      allowed.test(file.mimetype)
+    )
       cb(null, true);
-    else
-      cb(new Error("Only image files are allowed"));
+    else cb(new Error("Only image files are allowed"));
   },
 });
 
-// ── Routes (all protected)
-router.get("/users",                      auth(), getChatUsers);
-router.get("/messages/:userId",           auth(), getMessages);
-router.post("/send/:userId",              auth(), upload.single("image"), sendMessage);
-router.delete("/messages/:messageId",     auth(), deleteMessage);
-router.get("/unread-count",               auth(), getUnreadCount);
+
+router.get("/users", auth(), getChatUsers);
+router.get("/messages/:userId", auth(), getMessages);
+router.post("/send/:userId", auth(), upload.single("image"), sendMessage);
+router.delete("/messages/:messageId", auth(), deleteMessage);
+router.get("/unread-count", auth(), getUnreadCount);
 
 export default router;

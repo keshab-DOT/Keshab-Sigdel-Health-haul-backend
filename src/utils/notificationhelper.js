@@ -1,5 +1,5 @@
 import Notification from "../models/notification.js";
-import { getIO }    from "./socket.js"; // adjust path if your socket.js is elsewhere
+import { getIO }    from "./socket.js"; 
 
 export const createNotification = async ({
   recipientId,

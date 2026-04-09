@@ -17,7 +17,6 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-// PUT /api/notifications/:id/read
 export const markAsRead = async (req, res) => {
   try {
     await Notification.findOneAndUpdate(
@@ -30,7 +29,6 @@ export const markAsRead = async (req, res) => {
   }
 };
 
-// PUT /api/notifications/read-all
 export const markAllAsRead = async (req, res) => {
   try {
     await Notification.updateMany(

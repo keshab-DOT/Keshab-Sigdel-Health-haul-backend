@@ -3,7 +3,6 @@ import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
-// Stock decrement + pharmacy notifications (ORDER_PLACED + LOW_STOCK)
 const decrementStockAndNotify = async (products, orderId) => {
   const notifiedPharmacies = new Set();
 
@@ -21,7 +20,6 @@ const decrementStockAndNotify = async (products, orderId) => {
     const pharmacyId = product.userId?.toString();
     if (!pharmacyId) continue;
 
-    // ORDER_PLACED → pharmacy (once per pharmacy per order)
     if (!notifiedPharmacies.has(pharmacyId)) {
       notifiedPharmacies.add(pharmacyId);
       await createNotification({
@@ -34,7 +32,6 @@ const decrementStockAndNotify = async (products, orderId) => {
       });
     }
 
-    // LOW_STOCK → pharmacy (only when stock just hit 0)
     if (prevStock > 0 && newStock === 0) {
       await createNotification({
         recipientId: product.userId,
@@ -48,9 +45,6 @@ const decrementStockAndNotify = async (products, orderId) => {
   }
 };
 
-
-
-// CREATE ORDER (manual)
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -83,7 +77,6 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// CHECKOUT CART
 export const checkoutCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -108,10 +101,8 @@ export const checkoutCart = async (req, res) => {
 
     await Cart.deleteMany({ userId });
 
-    // Decrement stock + notify pharmacy (ORDER_PLACED + LOW_STOCK)
     await decrementStockAndNotify(products, order._id);
 
-    // Notify USER — order placed
     const methodLabel = paymentMethod === "khalti" ? "Khalti" : "Cash on Delivery";
     await createNotification({
       recipientId: userId,
@@ -128,7 +119,6 @@ export const checkoutCart = async (req, res) => {
   }
 };
 
-// GET ORDERS
 export const getOrders = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -182,7 +172,6 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// GET ORDER BY ID
 export const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -199,7 +188,6 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-// UPDATE ORDER STATUS (pharmacy / admin) — notifies user
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderStatus } = req.body;
@@ -242,7 +230,7 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// DELETE ORDER
+
 export const deleteOrder = async (req, res) => {
   try {
     const deletedOrder = await Order.findByIdAndDelete(req.params.id);

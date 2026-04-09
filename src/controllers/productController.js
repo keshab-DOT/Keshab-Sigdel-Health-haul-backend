@@ -2,7 +2,6 @@ import Product from "../models/product.js";
 import User from "../models/userModel.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
-// Create product (pharmacy only) — notifies admins for approval
 export const createProduct = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -19,7 +18,6 @@ export const createProduct = async (req, res) => {
       userId,
     });
 
-    // Notify all admins — new product needs approval
     const admins = await User.find({ roles: { $in: ["ADMIN"] } }).select("_id");
     for (const admin of admins) {
       await createNotification({
@@ -38,7 +36,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// Get approved products (public)
 export const getApprovedProducts = async (req, res) => {
   try {
     const products = await Product.find({ approvalStatus: "Approved" })
@@ -50,7 +47,6 @@ export const getApprovedProducts = async (req, res) => {
   }
 };
 
-// Get MY products (pharmacy only)
 export const getMyProducts = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -72,8 +68,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// Update product (only owner pharmacy)
-// ✅ Resets approvalStatus to Pending + notifies admins
 export const updateProduct = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -91,12 +85,10 @@ export const updateProduct = async (req, res) => {
     if (productTotalStockQuantity) product.productTotalStockQuantity = productTotalStockQuantity;
     if (req.file) product.productImageUrl = req.file.filename;
 
-    // Reset to Pending so admin must re-approve
     product.approvalStatus = "Pending";
 
     await product.save();
 
-    // Notify all admins — updated product needs re-approval
     const admins = await User.find({ roles: { $in: ["ADMIN"] } }).select("_id");
     for (const admin of admins) {
       await createNotification({
@@ -115,7 +107,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Delete product (owner pharmacy or admin)
 export const deleteProduct = async (req, res) => {
   try {
     const userId = req.user._id;

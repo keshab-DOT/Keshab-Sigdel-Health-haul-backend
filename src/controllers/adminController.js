@@ -3,7 +3,6 @@ import Product from "../models/product.js";
 import User from "../models/userModel.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
-// Get All Users (without password)
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
@@ -15,7 +14,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Update User Status (Active / Suspended / Banned)
 export const updateUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -42,7 +40,6 @@ export const updateUserStatus = async (req, res) => {
   }
 };
 
-// Get All Products (Admin View)
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -54,7 +51,6 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-// Approve or Reject Product — notifies pharmacy
 export const updateProductApproval = async (req, res) => {
   try {
     const { id } = req.params;
@@ -72,7 +68,6 @@ export const updateProductApproval = async (req, res) => {
     product.approvalStatus = approvalStatus;
     await product.save();
 
-    // Notify the pharmacy that owns this product
     await createNotification({
       recipientId: product.userId,
       recipientRole: "PHARMACY",
@@ -93,7 +88,6 @@ export const updateProductApproval = async (req, res) => {
   }
 };
 
-// Delete Any Product (Admin Only)
 export const adminDeleteProduct = async (req, res) => {
   try {
     const { id } = req.params;

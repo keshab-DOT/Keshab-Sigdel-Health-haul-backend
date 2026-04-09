@@ -6,13 +6,12 @@ import { getIO } from "../utils/socket.js";
 const hasRole = (user, role) =>
   user?.roles?.some((r) => r.toLowerCase() === role.toLowerCase()) ?? false;
 
-// GET /api/chat/users
 export const getChatUsers = async (req, res) => {
   try {
     const myId = req.user._id;
     const me = await User.findById(myId).select("roles").lean();
 
-    const iAmAdmin    = hasRole(me, "admin");
+    const iAmAdmin = hasRole(me, "admin");
     const iAmPharmacy = hasRole(me, "pharmacy");
 
     let roleFilter;
@@ -37,8 +36,8 @@ export const getChatUsers = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const conversationMap = new Map();   // otherId -> lastMessage text
-    const lastMessageAtMap = new Map();  // otherId -> most recent message timestamp
+    const conversationMap = new Map();
+    const lastMessageAtMap = new Map(); 
     messages.forEach((m) => {
       const otherId =
         m.senderId.toString() === myId.toString()
@@ -50,28 +49,32 @@ export const getChatUsers = async (req, res) => {
       }
     });
 
-    // Aggregate unread counts grouped by sender
     const unreadCounts = await Message.aggregate([
-      { $match: { receiverId: new mongoose.Types.ObjectId(myId), isRead: false } },
+      {
+        $match: {
+          receiverId: new mongoose.Types.ObjectId(myId),
+          isRead: false,
+        },
+      },
       { $group: { _id: "$senderId", count: { $sum: 1 } } },
     ]);
     const unreadMap = new Map(
-      unreadCounts.map((r) => [r._id.toString(), r.count])
+      unreadCounts.map((r) => [r._id.toString(), r.count]),
     );
 
     const result = allUsers.map((u) => ({
       ...u,
-      lastMessage:     conversationMap.get(u._id.toString()) || null,
+      lastMessage: conversationMap.get(u._id.toString()) || null,
       hasConversation: conversationMap.has(u._id.toString()),
-      unreadCount:     unreadMap.get(u._id.toString()) || 0,
-      lastMessageAt:   lastMessageAtMap.get(u._id.toString()) || 0,
+      unreadCount: unreadMap.get(u._id.toString()) || 0,
+      lastMessageAt: lastMessageAtMap.get(u._id.toString()) || 0,
     }));
 
-    // Sort: most recently messaged first; no-message users fall to bottom alphabetically
     result.sort((a, b) => {
       if (a.hasConversation && !b.hasConversation) return -1;
       if (!a.hasConversation && b.hasConversation) return 1;
-      if (a.hasConversation && b.hasConversation) return b.lastMessageAt - a.lastMessageAt;
+      if (a.hasConversation && b.hasConversation)
+        return b.lastMessageAt - a.lastMessageAt;
       return a.name.localeCompare(b.name);
     });
 
@@ -82,7 +85,6 @@ export const getChatUsers = async (req, res) => {
   }
 };
 
-// GET /api/chat/messages/:userId
 export const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -93,14 +95,14 @@ export const getMessages = async (req, res) => {
 
     const messages = await Message.find({
       $or: [
-        { senderId: myId,   receiverId: userId },
-        { senderId: userId, receiverId: myId   },
+        { senderId: myId, receiverId: userId },
+        { senderId: userId, receiverId: myId },
       ],
     }).sort({ createdAt: 1 });
 
     await Message.updateMany(
       { senderId: userId, receiverId: myId, isRead: false },
-      { isRead: true }
+      { isRead: true },
     );
 
     res.status(200).json({ messages });
@@ -109,7 +111,6 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// POST /api/chat/send/:userId
 export const sendMessage = async (req, res) => {
   try {
     const { userId: receiverId } = req.params;
@@ -127,7 +128,7 @@ export const sendMessage = async (req, res) => {
     const newMessage = await Message.create({
       senderId,
       receiverId,
-      text:  text || "",
+      text: text || "",
       image: imageUrl,
     });
 
@@ -140,7 +141,6 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// DELETE /api/chat/messages/:messageId
 export const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -151,11 +151,12 @@ export const deleteMessage = async (req, res) => {
 
     const message = await Message.findById(messageId);
 
-    if (!message)
-      return res.status(404).json({ message: "Message not found" });
+    if (!message) return res.status(404).json({ message: "Message not found" });
 
     if (message.senderId.toString() !== myId.toString())
-      return res.status(403).json({ message: "You can only delete your own messages" });
+      return res
+        .status(403)
+        .json({ message: "You can only delete your own messages" });
 
     await message.deleteOne();
 
@@ -168,7 +169,6 @@ export const deleteMessage = async (req, res) => {
   }
 };
 
-// GET /api/chat/unread-count
 export const getUnreadCount = async (req, res) => {
   try {
     const count = await Message.countDocuments({

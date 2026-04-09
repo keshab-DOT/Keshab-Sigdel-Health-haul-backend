@@ -15,13 +15,11 @@ export const createReview = async (req, res) => {
       return res.status(400).json({ message: "Rating must be between 1 and 5." });
     }
 
-    // Check: user hasn't already reviewed this pharmacy
     const existing = await RatingReview.findOne({ userId, pharmacyId });
     if (existing) {
       return res.status(400).json({ message: "You have already reviewed this pharmacy." });
     }
 
-    // find a delivered order where at least one product belongs to this pharmacy
     const deliveredOrders = await Order.find({
       userId,
       orderStatus: "delivered",
@@ -47,7 +45,6 @@ export const createReview = async (req, res) => {
       comment: comment || "",
     });
 
-    // Populate user name for the response so frontend can display it immediately
     await review.populate("userId", "name");
 
     return res.status(201).json({
@@ -63,7 +60,6 @@ export const createReview = async (req, res) => {
   }
 };
 
-// GET /api/reviews/pharmacy/:pharmacyId
 export const getPharmacyReviews = async (req, res) => {
   try {
     const { pharmacyId } = req.params;
@@ -89,7 +85,6 @@ export const getPharmacyReviews = async (req, res) => {
   }
 };
 
-// PHARMACY gets all reviews for their own pharmacy only.
 export const getMyPharmacyReviews = async (req, res) => {
   try {
     const pharmacyId = req.user._id;
@@ -111,7 +106,6 @@ export const getMyPharmacyReviews = async (req, res) => {
   }
 };
 
-// ADMIN gets all reviews across all pharmacies.
 export const getAllReviews = async (req, res) => {
   try {
     const reviews = await RatingReview.find()
@@ -126,7 +120,6 @@ export const getAllReviews = async (req, res) => {
   }
 };
 
-// User can delete their own review. Admin can delete any.
 export const deleteReview = async (req, res) => {
   try {
     const { reviewId } = req.params;

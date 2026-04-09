@@ -15,7 +15,7 @@ export const initSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // EXISTING: track online status via query param 
+    // track online status via query param 
     const userId = socket.handshake.query.userId;
     if (userId) {
       userSocketMap[userId] = socket.id;
@@ -23,7 +23,7 @@ export const initSocket = (server) => {
       console.log(`[Socket] User ${userId} is now ONLINE`);
     }
 
-    // EXISTING: personal notification rooms 
+    // personal notification rooms 
     socket.on("joinUserRoom", (uid) => {
       if (uid) {
         socket.join(`user:${uid}`);
@@ -39,7 +39,7 @@ export const initSocket = (server) => {
       if (uid) socket.leave(`user:${uid}`);
     });
 
-    // EXISTING: disconnect 
+    // disconnect 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
       const disconnectedUserId = Object.keys(userSocketMap).find(
@@ -52,14 +52,8 @@ export const initSocket = (server) => {
       }
     });
 
-    //  NEW: read role from query (used only for location events)
-    // Does NOT affect any existing functionality — role is only checked
-    // inside the new location events below
     const role = socket.handshake.query.role?.toLowerCase();
 
-    // NEW: order rooms 
-    // Pharmacy and user both join the same order room so location events
-    // are delivered privately between them only
     socket.on("joinOrderRoom", (orderId) => {
       if (orderId) {
         socket.join(`order:${orderId}`);
@@ -71,17 +65,11 @@ export const initSocket = (server) => {
       if (orderId) socket.leave(`order:${orderId}`);
     });
 
-    // NEW: admin monitoring room 
-    // Admin joins this to see ALL pharmacy + user location events
     socket.on("joinAdminRoom", () => {
       socket.join("adminRoom");
       console.log(`[Socket] ${userId} joined adminRoom`);
     });
 
-    // NEW: pharmacy broadcasts its live GPS 
-    // Pharmacy emits "pharmacyShareLocation"
-    // → user in the same order room receives "pharmacyLocation"
-    // → admin room also receives it for monitoring
     socket.on("pharmacyShareLocation", ({ orderId, latitude, longitude, pharmacyName }) => {
       if (role === "pharmacy" && orderId) {
         io.to(`order:${orderId}`).emit("pharmacyLocation", {
@@ -101,10 +89,6 @@ export const initSocket = (server) => {
       }
     });
 
-    // NEW: user shares their delivery location
-    // User emits "userShareLocation"
-    // → pharmacy in the same order room receives "userLocation"
-    // → admin room also receives it for monitoring
     socket.on("userShareLocation", ({ orderId, latitude, longitude }) => {
       if (role === "user" && orderId) {
         io.to(`order:${orderId}`).emit("userLocation", {
@@ -123,9 +107,6 @@ export const initSocket = (server) => {
       }
     });
 
-    // NEW: notify order room when a participant disconnects 
-    // The other side uses this to update their "online" status indicator
-    // Piggybacks on the existing disconnect handler via a second listener
     socket.on("disconnect", () => {
       if (userId && role) {
         io.emit("participantOffline", { userId, role });

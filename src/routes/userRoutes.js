@@ -26,7 +26,7 @@ router.get("/user/:id", async (req, res) => {
   }
 });
 
-// NEW: pharmacy saves its GPS location to DB for delivery purposes
+// pharmacy saves its GPS location to DB for delivery purposes
 router.put("/update-location", auth(), async (req, res) => {
   try {
     const { latitude, longitude, address } = req.body;

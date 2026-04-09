@@ -58,7 +58,7 @@ const login = async (data) => {
   return { _id: user._id, name: user.name, email: user.email, phone: user.phone, roles: user.roles };
 };
 
-// ✅ Step 1: Send OTP to email
+// Send OTP to email
 const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
   if (!user) throw { statusCode: 404, message: "No account found with that email" };
@@ -70,7 +70,7 @@ const forgotPassword = async (email) => {
   return { message: "Reset code sent to your email" };
 };
 
-// ✅ Step 3: Reset password with verified OTP
+// Reset password with verified OTP
 const resetPassword = async (email, code, newPassword) => {
   const user = await User.findOne({ email });
   if (!user) throw { statusCode: 404, message: "User not found" };

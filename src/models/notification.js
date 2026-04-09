@@ -14,21 +14,20 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      "ORDER_PLACED", // → pharmacy: new order received
-      "ORDER_STATUS", // → user: order status changed
-      "PRODUCT_APPROVED", // → pharmacy: product approved by admin
-      "PRODUCT_REJECTED", // → pharmacy: product rejected by admin
-      "PRODUCT_APPROVAL_NEEDED", // → pharmacy: new product awaiting admin approval
-      "PAYMENT_RECEIVED", // → pharmacy: khalti payment confirmed
-      "PAYMENT_SUCCESS", // → user: khalti payment confirmed
-      "LOW_STOCK", // → pharmacy: product stock hit 0
+      "ORDER_PLACED", 
+      "ORDER_STATUS",
+      "PRODUCT_APPROVED", 
+      "PRODUCT_REJECTED", 
+      "PRODUCT_APPROVAL_NEEDED", 
+      "PAYMENT_RECEIVED", 
+      "PAYMENT_SUCCESS", 
+      "LOW_STOCK", 
     ],
     required: true,
   },
   title: { type: String, required: true },
   message: { type: String, required: true },
 
-  // Optional references for deep linking
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
 

@@ -10,19 +10,19 @@ const userSchema = new mongoose.Schema(
     // Common profile fields 
     phone: { type: String, default: "" },
 
-    // Pharmacy-only profile fields
+    // Pharmacy only profile fields
     address: { type: String, default: "" },
     licenseNumber: { type: String, default: "" },
     description: { type: String, default: "" },
 
-    // Verification / auth
+    // Verification auth
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpiryTime: { type: Date },
     resetPasswordCode: { type: String, default: null },
     resetPasswordExpiryTime: { type: Date, default: null },
 
-    // Admin-managed fields 
+    // Admin managed fields 
     status: {
       type: String,
       enum: ["Active", "Suspended", "Banned"],
@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema(
     },
 
   },
-  { timestamps: true }   // adds createdAt / updatedAt automatically
+  { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);

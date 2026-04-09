@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 
-// ADD TO CART
+
 export const addToCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -30,14 +30,12 @@ export const addToCart = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Only approved products
     if (product.approvalStatus !== "Approved") {
       return res.status(400).json({
         message: "Product is not available for purchase",
       });
     }
 
-    // Out of stock check
     if (product.productTotalStockQuantity <= 0) {
       return res.status(400).json({
         message: "Stock is insufficient. Product out of stock.",
@@ -81,8 +79,6 @@ export const addToCart = async (req, res) => {
   }
 };
 
-
-// GET USER CART
 export const getCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -99,7 +95,6 @@ export const getCart = async (req, res) => {
   }
 };
 
-// UPDATE CART ITEM
 export const updateCartItem = async (req, res) => {
   try {
     const { id } = req.params;
@@ -169,8 +164,6 @@ export const updateCartItem = async (req, res) => {
   }
 };
 
-
-//REMOVE CART ITEM
 export const removeCartItem = async (req, res) => {
   try {
     const { id } = req.params;
@@ -202,7 +195,6 @@ export const removeCartItem = async (req, res) => {
   }
 };
 
-// CLEAR CART
 export const clearCart = async (req, res) => {
   try {
     const userId = req.user._id;

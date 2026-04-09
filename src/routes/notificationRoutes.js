@@ -10,7 +10,6 @@ import { USER, PHARMACY, ADMIN } from "../constants/roles.js";
 
 const router = express.Router();
 
-// All roles can receive notifications
 router.get("/", auth(), roleBasedAuth([USER, PHARMACY, ADMIN]), getNotifications);
 router.put("/read-all", auth(), roleBasedAuth([USER, PHARMACY, ADMIN]), markAllAsRead);
 router.put("/:id/read", auth(), roleBasedAuth([USER, PHARMACY, ADMIN]), markAsRead);

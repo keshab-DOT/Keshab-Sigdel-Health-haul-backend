@@ -14,7 +14,6 @@ export const updateProductApproval = async (req, res) => {
     product.approvalStatus = approvalStatus;
     await product.save();
 
-    // Notify the pharmacy
     await createNotification({
       recipientId:   product.userId,
       recipientRole: "PHARMACY",
