@@ -10,7 +10,7 @@ import {
   updateProfile,
   changePassword,
 } from "../controllers/userController.js";
-import { getUser } from "../controllers/authController.js";
+import { getUser } from "../controllers/userController.js";
 import auth from "../middleware/authMiddleware.js";
 import User from "../models/userModel.js";
 
