@@ -1,8 +1,18 @@
 import { Router } from "express";
-import { signup, verifyEmail, resendOtp, userLogin, logout,
-   forgotPassword, resetPassword, updateProfile, changePassword, } 
-   from "../controllers/userController.js";
+import {
+  signup,
+  verifyEmail,
+  resendOtp,
+  userLogin,
+  logout,
+  forgotPassword,
+  resetPassword,
+  updateProfile,
+  changePassword,
+} from "../controllers/userController.js";
+import { getUser } from "../controllers/authController.js";
 import auth from "../middleware/authMiddleware.js";
+import User from "../models/userModel.js";
 
 const router = Router();
 
@@ -16,22 +26,17 @@ router.post("/reset-password", resetPassword);
 router.put("/update-profile", auth(), updateProfile);
 router.put("/change-password", auth(), changePassword);
 
-router.get("/user/:id", async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select("name location roles");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Single /user/:id route — uses getUser from authController
+router.get("/user/:id", auth(), getUser);
 
-// pharmacy saves its GPS location to DB for delivery purposes
+// Pharmacy saves its GPS location to DB for delivery purposes
 router.put("/update-location", auth(), async (req, res) => {
   try {
     const { latitude, longitude, address } = req.body;
     if (latitude == null || longitude == null) {
-      return res.status(400).json({ message: "latitude and longitude are required" });
+      return res
+        .status(400)
+        .json({ message: "latitude and longitude are required" });
     }
     await User.findByIdAndUpdate(req.user._id, {
       "location.latitude": Number(latitude),

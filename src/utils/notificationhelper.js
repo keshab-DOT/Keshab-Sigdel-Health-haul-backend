@@ -30,6 +30,7 @@ export const createNotification = async ({
       orderId: notification.orderId,
       productId: notification.productId,
       isRead: false,
+      
       createdAt: notification.createdAt,
     });
 

@@ -2,6 +2,7 @@ import userService from "../services/userService.js";
 import { createJWT } from "../utils/tokens.js";
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 
 const signup = async (req, res) => {
   try {
@@ -17,7 +18,6 @@ const signup = async (req, res) => {
     try {
       user = await userService.signup(input);
     } catch (serviceError) {
-      // If it's a known error (e.g. user exists), pass it through
       if (serviceError.statusCode) {
         return res
           .status(serviceError.statusCode)
@@ -28,7 +28,6 @@ const signup = async (req, res) => {
         "-password",
       );
       if (existingUser) {
-        // User was saved but email failed — return success anyway
         console.error(
           "Email sending failed (non-fatal):",
           serviceError.message,
@@ -87,7 +86,7 @@ const userLogin = async (req, res) => {
     res.cookie("authToken", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", 
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -210,6 +209,25 @@ const changePassword = async (req, res) => {
   }
 };
 
+const getUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid user ID" });
+
+    const user = await User.findById(id).select(
+      "-password -verificationCode -verificationCodeExpiryTime -resetPasswordCode -resetPasswordExpiryTime",
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
 export {
   signup,
   verifyEmail,
@@ -220,4 +238,5 @@ export {
   logout,
   updateProfile,
   changePassword,
+  getUser,
 };
