@@ -1,5 +1,6 @@
 import axios from "axios";
 import Order from "../models/order.js";
+import Payment from "../models/payment.js"; // 👈 add this import
 
 const KHALTI_INITIATE_URL = "https://dev.khalti.com/api/v2/epayment/initiate/";
 const KHALTI_LOOKUP_URL = "https://dev.khalti.com/api/v2/epayment/lookup/";
@@ -123,10 +124,13 @@ export const verifyKhaltiPayment = async (req, res) => {
       { headers: headers() },
     );
 
-    const order = await Order.findOne({ khaltiPidx: pidx }).populate(
-      "products.productId",
-      "productName productPrice productImageUrl",
-    );
+    // ✅ Fixed: now populates userId too
+    const order = await Order.findOne({ khaltiPidx: pidx })
+      .populate(
+        "products.productId",
+        "productName productPrice productImageUrl",
+      )
+      .populate("userId", "name email"); // 👈 added
 
     if (!order)
       return res
@@ -139,15 +143,21 @@ export const verifyKhaltiPayment = async (req, res) => {
       order.orderStatus = "pending";
       await order.save();
 
-      // ✅ Save to payments collection
-      await Payment.create({
-        orderId: order._id,
-        userId: order.userId,
-        pidx: pidx,
-        transactionId: khaltiData.transaction_id,
-        amount: order.totalAmount,
-        status: "completed",
-      });
+      try {
+        await Payment.create({
+          orderId: order._id,
+          userId: order.userId?._id || order.userId,
+          pidx: pidx,
+          transactionId: khaltiData.transaction_id,
+          amount: order.totalAmount,
+          status: "completed",
+        });
+      } catch (paymentErr) {
+        console.error(
+          "⚠️ Payment record save failed (non-fatal):",
+          paymentErr.message,
+        );
+      }
 
       return res.json({
         status: "Completed",
@@ -171,12 +181,14 @@ export const verifyKhaltiPayment = async (req, res) => {
       JSON.stringify(err?.response?.data, null, 2),
     );
     console.error("  Local msg   :", err.message);
+    console.error("  Stack       :", err.stack);
 
     return res.status(500).json({
       message:
         err?.response?.data?.detail ||
         err.message ||
         "Failed to verify payment",
+      error: err.message,
     });
   }
 };
