@@ -2,13 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import auth from "../middleware/authMiddleware.js";
-import {
-  getChatUsers,
-  getMessages,
-  sendMessage,
-  deleteMessage,
-  getUnreadCount,
-} from "../controllers/chatcontroller.js";
+import {getChatUsers, getMessages, sendMessage, deleteMessage, getUnreadCount,} from "../controllers/chatcontroller.js";
 
 const router = express.Router();
 

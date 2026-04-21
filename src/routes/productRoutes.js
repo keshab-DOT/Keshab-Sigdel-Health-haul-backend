@@ -1,14 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
-import {
-  createProduct,
-  getApprovedProducts,
-  getMyProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
-} from "../controllers/productController.js";
+import {createProduct, getApprovedProducts, getMyProducts, getProductById, updateProduct, deleteProduct,} from "../controllers/productController.js";
 
 import auth from "../middleware/authMiddleware.js";
 import { ADMIN, PHARMACY } from "../constants/roles.js";

@@ -138,6 +138,17 @@ export const verifyKhaltiPayment = async (req, res) => {
       order.khaltiTransactionId = khaltiData.transaction_id;
       order.orderStatus = "pending";
       await order.save();
+
+      // ✅ Save to payments collection
+      await Payment.create({
+        orderId: order._id,
+        userId: order.userId,
+        pidx: pidx,
+        transactionId: khaltiData.transaction_id,
+        amount: order.totalAmount,
+        status: "completed",
+      });
+
       return res.json({
         status: "Completed",
         order,

@@ -26,7 +26,7 @@ router.post("/reset-password", resetPassword);
 router.put("/update-profile", auth(), updateProfile);
 router.put("/change-password", auth(), changePassword);
 
-// Single /user/:id route — uses getUser from authController
+// yesma user lay naya getUser garxa from authController
 router.get("/user/:id", auth(), getUser);
 
 // Pharmacy saves its GPS location to DB for delivery purposes
