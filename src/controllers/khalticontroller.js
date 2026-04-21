@@ -1,6 +1,6 @@
 import axios from "axios";
 import Order from "../models/order.js";
-import Payment from "../models/payment.js"; // 👈 add this import
+import Payment from "../models/payment.js";
 
 const KHALTI_INITIATE_URL = "https://dev.khalti.com/api/v2/epayment/initiate/";
 const KHALTI_LOOKUP_URL = "https://dev.khalti.com/api/v2/epayment/lookup/";
@@ -18,15 +18,14 @@ export const initiateKhaltiPayment = async (req, res) => {
       return res.status(400).json({ message: "orderId is required" });
 
     if (!process.env.KHALTI_SECRET_KEY)
-      return res
-        .status(500)
-        .json({ message: "KHALTI_SECRET_KEY not set in .env" });
+      return res.status(500).json({ message: "KHALTI_SECRET_KEY not set in .env" });
 
     const order = await Order.findById(orderId)
       .populate("userId", "name email")
       .populate("products.productId", "productName productPrice");
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order)
+      return res.status(404).json({ message: "Order not found" });
 
     if (!order.userId?._id)
       return res.status(500).json({ message: "Order user data missing" });
@@ -35,9 +34,7 @@ export const initiateKhaltiPayment = async (req, res) => {
       return res.status(403).json({ message: "Not your order" });
 
     if (order.paymentMethod !== "khalti")
-      return res
-        .status(400)
-        .json({ message: "Order payment method is not Khalti" });
+      return res.status(400).json({ message: "Order payment method is not Khalti" });
 
     if (order.paymentStatus === "paid")
       return res.status(400).json({ message: "Order is already paid" });
@@ -45,12 +42,9 @@ export const initiateKhaltiPayment = async (req, res) => {
     const amountPaisa = Math.round(order.totalAmount * 100);
 
     if (amountPaisa < 1000)
-      return res
-        .status(400)
-        .json({ message: "Minimum order amount for Khalti is Rs. 10" });
+      return res.status(400).json({ message: "Minimum order amount for Khalti is Rs. 10" });
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || "https://healthhaul.netlify.app";
+    const frontendUrl = process.env.FRONTEND_URL || "https://healthhaul.netlify.app";
     const returnUrl = `${frontendUrl}/payment/result`;
 
     const productDetails = order.products.map((item) => {
@@ -96,10 +90,7 @@ export const initiateKhaltiPayment = async (req, res) => {
   } catch (err) {
     console.error("❌ Khalti initiate error:");
     console.error("  HTTP Status :", err?.response?.status);
-    console.error(
-      "  Khalti Body :",
-      JSON.stringify(err?.response?.data, null, 2),
-    );
+    console.error("  Khalti Body :", JSON.stringify(err?.response?.data, null, 2));
     console.error("  Local msg   :", err.message);
 
     return res.status(500).json({
@@ -116,26 +107,25 @@ export const verifyKhaltiPayment = async (req, res) => {
   try {
     const { pidx } = req.body;
 
-    if (!pidx) return res.status(400).json({ message: "pidx is required" });
+    if (!pidx)
+      return res.status(400).json({ message: "pidx is required" });
 
     const { data: khaltiData } = await axios.post(
       KHALTI_LOOKUP_URL,
       { pidx },
-      { headers: headers() },
+      { headers: headers() }
     );
 
-    // ✅ Fixed: now populates userId too
+    console.log("🔍 Khalti status received:", khaltiData.status);
+
     const order = await Order.findOne({ khaltiPidx: pidx })
-      .populate(
-        "products.productId",
-        "productName productPrice productImageUrl",
-      )
-      .populate("userId", "name email"); // 👈 added
+      .populate("products.productId", "productName productPrice productImageUrl")
+      .populate("userId", "name email");
+
+    console.log("🔍 Order found:", order?._id);
 
     if (!order)
-      return res
-        .status(404)
-        .json({ message: "Order not found for this payment" });
+      return res.status(404).json({ message: "Order not found for this payment" });
 
     if (khaltiData.status === "Completed") {
       order.paymentStatus = "paid";
@@ -143,20 +133,22 @@ export const verifyKhaltiPayment = async (req, res) => {
       order.orderStatus = "pending";
       await order.save();
 
+      console.log("✅ Order saved as paid, now saving Payment record...");
+
       try {
-        await Payment.create({
+        const payment = await Payment.create({
           orderId: order._id,
           userId: order.userId?._id || order.userId,
           pidx: pidx,
           transactionId: khaltiData.transaction_id,
           amount: order.totalAmount,
+          method: "khalti",
           status: "completed",
         });
+        console.log("✅ Payment record saved:", payment._id);
       } catch (paymentErr) {
-        console.error(
-          "⚠️ Payment record save failed (non-fatal):",
-          paymentErr.message,
-        );
+        console.error("⚠️ Payment record save failed:", paymentErr.message);
+        console.error("⚠️ Payment error stack:", paymentErr.stack);
       }
 
       return res.json({
@@ -170,16 +162,26 @@ export const verifyKhaltiPayment = async (req, res) => {
       order.orderStatus = "cancelled";
       order.paymentStatus = "unpaid";
       await order.save();
+
+      try {
+        await Payment.create({
+          orderId: order._id,
+          userId:  order.userId?._id || order.userId,
+          pidx:    pidx,
+          amount:  order.totalAmount,
+          method:  "khalti",
+          status:  "failed",
+        });
+      } catch (paymentErr) {
+        console.error("⚠️ Failed payment record save error:", paymentErr.message);
+      }
     }
 
     return res.json({ status: khaltiData.status, order });
   } catch (err) {
     console.error("❌ Khalti verify error:");
     console.error("  HTTP Status :", err?.response?.status);
-    console.error(
-      "  Khalti Body :",
-      JSON.stringify(err?.response?.data, null, 2),
-    );
+    console.error("  Khalti Body :", JSON.stringify(err?.response?.data, null, 2));
     console.error("  Local msg   :", err.message);
     console.error("  Stack       :", err.stack);
 
