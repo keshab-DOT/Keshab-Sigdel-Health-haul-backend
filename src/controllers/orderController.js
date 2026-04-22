@@ -1,6 +1,7 @@
 import Order from "../models/order.js";
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
+import Payment from "../models/payment.js";
 import { createNotification } from "../utils/notificationhelper.js";
 
 const decrementStockAndNotify = async (products, orderId) => {
@@ -27,7 +28,8 @@ const decrementStockAndNotify = async (products, orderId) => {
         recipientRole: "PHARMACY",
         type: "ORDER_PLACED",
         title: "📦 New Order Received",
-        message: "A new order has been placed containing your products. Please prepare it for delivery.",
+        message:
+          "A new order has been placed containing your products. Please prepare it for delivery.",
         orderId,
       });
     }
@@ -58,17 +60,21 @@ export const createOrder = async (req, res) => {
 
     for (const item of products) {
       const product = await Product.findById(item.productId);
-      if (!product) return res.status(404).json({ message: "Product not found" });
+      if (!product)
+        return res.status(404).json({ message: "Product not found" });
       validatedProducts.push({ productId: product._id, quantity: item.quantity });
       totalAmount += product.productPrice * item.quantity;
     }
 
     const order = await Order.create({
-      userId, products: validatedProducts,
-      shippingAddress, phoneNumber, totalAmount, paymentMethod,
+      userId,
+      products: validatedProducts,
+      shippingAddress,
+      phoneNumber,
+      totalAmount,
+      paymentMethod,
     });
 
-    // Decrement stock + notify pharmacy
     await decrementStockAndNotify(validatedProducts, order._id);
 
     res.status(201).json({ message: "Order placed successfully", order });
@@ -96,14 +102,19 @@ export const checkoutCart = async (req, res) => {
     }
 
     const order = await Order.create({
-      userId, products, shippingAddress, phoneNumber, totalAmount, paymentMethod,
+      userId,
+      products,
+      shippingAddress,
+      phoneNumber,
+      totalAmount,
+      paymentMethod,
     });
 
     await Cart.deleteMany({ userId });
-
     await decrementStockAndNotify(products, order._id);
 
-    const methodLabel = paymentMethod === "khalti" ? "Khalti" : "Cash on Delivery";
+    const methodLabel =
+      paymentMethod === "khalti" ? "Khalti" : "Cash on Delivery";
     await createNotification({
       recipientId: userId,
       recipientRole: "USER",
@@ -122,7 +133,9 @@ export const checkoutCart = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const userId = req.user._id;
-    const userRoles = Array.isArray(req.user.roles) ? req.user.roles : [req.user.roles];
+    const userRoles = Array.isArray(req.user.roles)
+      ? req.user.roles
+      : [req.user.roles];
 
     let orders;
 
@@ -131,36 +144,39 @@ export const getOrders = async (req, res) => {
         .populate("userId", "name email")
         .populate({
           path: "products.productId",
-          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          select:
+            "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
-
     } else if (userRoles.includes("PHARMACY")) {
       const myProducts = await Product.find({ userId }).select("_id");
-      const myProductIds = myProducts.map(p => p._id.toString());
+      const myProductIds = myProducts.map((p) => p._id.toString());
 
       const allOrders = await Order.find()
         .populate("userId", "name email")
         .populate({
           path: "products.productId",
-          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          select:
+            "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
 
-      orders = allOrders.filter(order =>
-        order.products.some(item =>
-          item.productId && myProductIds.includes(item.productId._id.toString())
+      orders = allOrders.filter((order) =>
+        order.products.some(
+          (item) =>
+            item.productId &&
+            myProductIds.includes(item.productId._id.toString())
         )
       );
-
     } else {
       orders = await Order.find({ userId })
         .populate("userId", "name email")
         .populate({
           path: "products.productId",
-          select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+          select:
+            "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
           populate: { path: "userId", select: "name email" },
         })
         .sort({ createdAt: -1 });
@@ -178,7 +194,8 @@ export const getOrderById = async (req, res) => {
       .populate("userId", "name email")
       .populate({
         path: "products.productId",
-        select: "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
+        select:
+          "productName productPrice productImageUrl productDescription productTotalStockQuantity stockStatus userId",
         populate: { path: "userId", select: "name email" },
       });
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -192,15 +209,42 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const { orderStatus } = req.body;
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-      req.params.id,
-      { orderStatus },
-      { new: true }
-    ).populate("userId", "name email");
+    const order = await Order.findById(req.params.id).populate(
+      "userId",
+      "name email"
+    );
 
-    if (!updatedOrder)
-      return res.status(404).json({ message: "Order not found" });
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
+    order.orderStatus = orderStatus;
+
+    // ── COD: mark as paid + create Payment record when delivered
+    if (orderStatus === "delivered" && order.paymentMethod === "cod") {
+      order.paymentStatus = "paid";
+
+      try {
+        await Payment.create({
+          orderId: order._id,
+          userId: order.userId?._id || order.userId,
+          pidx: null,
+          transactionId: null,
+          amount: order.totalAmount,
+          method: "cod",
+          status: "completed",
+        });
+      } catch (paymentErr) {
+        console.error("⚠️ COD Payment record save failed:", paymentErr.message);
+      }
+    }
+
+    // ── If cancelled, mark as unpaid
+    if (orderStatus === "cancelled") {
+      order.paymentStatus = "unpaid";
+    }
+
+    await order.save();
+
+    // ── Notify the customer
     const statusTitles = {
       pending: "⏳ Order Pending",
       delivered: "🎉 Order Delivered",
@@ -208,28 +252,28 @@ export const updateOrderStatus = async (req, res) => {
     };
     const statusMessages = {
       pending: "Your order is pending confirmation.",
-      ontheway: "Great news! Your order is on its way to you.",
       delivered: "Your order has been delivered. Enjoy your medicines!",
       cancelled: "Your order has been cancelled.",
     };
 
-    if (updatedOrder.userId?._id) {
+    if (order.userId?._id) {
       await createNotification({
-        recipientId: updatedOrder.userId._id,
+        recipientId: order.userId._id,
         recipientRole: "USER",
         type: "ORDER_STATUS",
         title: statusTitles[orderStatus] || "Order Updated",
-        message: statusMessages[orderStatus] || `Your order status is now: ${orderStatus}`,
-        orderId: updatedOrder._id,
+        message:
+          statusMessages[orderStatus] ||
+          `Your order status is now: ${orderStatus}`,
+        orderId: order._id,
       });
     }
 
-    res.json({ message: "Order status updated", order: updatedOrder });
+    res.json({ message: "Order status updated", order });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const deleteOrder = async (req, res) => {
   try {
